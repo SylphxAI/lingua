@@ -188,15 +188,19 @@ export class DrizzleStorageAdapter<
 			)
 			.onConflictDoNothing();
 
-		// Update occurrences for existing items
+		// Update occurrences for existing items (parallel for performance)
 		const existingItems = items.filter((i) => existingSet.has(i.hash));
-		for (const item of existingItems) {
-			await (db.update as CallableFunction)(this.sources)
-				.set({
-					occurrences: sql`${sources.occurrences} + 1`,
-					lastSeenAt: now,
-				})
-				.where(eq(sources.hash as Parameters<typeof eq>[0], item.hash));
+		if (existingItems.length > 0) {
+			await Promise.allSettled(
+				existingItems.map((item) =>
+					(db.update as CallableFunction)(this.sources)
+						.set({
+							occurrences: sql`${sources.occurrences} + 1`,
+							lastSeenAt: now,
+						})
+						.where(eq(sources.hash as Parameters<typeof eq>[0], item.hash))
+				)
+			);
 		}
 	}
 
