@@ -8,12 +8,16 @@
 		".": {
 			"types": "./dist/index.d.ts",
 			"import": "./dist/index.js"
+		},
+		"./server": {
+			"types": "./dist/server.d.ts",
+			"import": "./dist/server.js"
 		}
 	},
 	"files": ["dist"],
 	"scripts": {
-		"build": "bunup src/index.tsx --dts --external react --external @sylphx/rosetta",
-		"dev": "bunup src/index.tsx --dts --external react --external @sylphx/rosetta --watch",
+		"build": "bunup src/index.tsx src/server.tsx --dts --external react --external @sylphx/rosetta",
+		"dev": "bunup src/index.tsx src/server.tsx --dts --external react --external @sylphx/rosetta --watch",
 		"typecheck": "tsc --noEmit",
 		"clean": "rm -rf dist"
 	},

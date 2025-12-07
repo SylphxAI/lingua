@@ -2,26 +2,51 @@
  * Server-side Rosetta module
  *
  * @example
- * import { Rosetta, t, flushCollectedStrings } from '@sylphx/rosetta/server';
+ * // ============================================
+ * // Setup (lib/i18n.ts)
+ * // ============================================
+ * import { Rosetta } from '@sylphx/rosetta/server';
+ * import { DrizzleStorageAdapter } from '@sylphx/rosetta-drizzle';
  *
- * const rosetta = new Rosetta({
- *   storage: myStorageAdapter,
- *   localeDetector: () => cookies().get('locale')?.value ?? 'en',
+ * export const rosetta = new Rosetta({
+ *   storage: new DrizzleStorageAdapter({ db, sources, translations }),
+ *   defaultLocale: 'en',
  * });
  *
- * // In layout.tsx
- * export default async function Layout({ children }) {
- *   return rosetta.init(async () => {
- *     const result = <html><body>{children}</body></html>;
- *     await flushCollectedStrings(); // Flush at end of request
- *     return result;
- *   });
+ * // ============================================
+ * // Layout (app/[locale]/layout.tsx)
+ * // ============================================
+ * import { RosettaProvider } from '@sylphx/rosetta-react/server';
+ * import { rosetta } from '@/lib/i18n';
+ *
+ * export default async function Layout({ children, params }) {
+ *   return (
+ *     <RosettaProvider rosetta={rosetta} locale={params.locale}>
+ *       <html lang={params.locale}>
+ *         <body>{children}</body>
+ *       </html>
+ *     </RosettaProvider>
+ *   );
  * }
  *
- * // In any server component
+ * // ============================================
+ * // Server Component
+ * // ============================================
  * import { t } from '@sylphx/rosetta/server';
- * export function MyComponent() {
- *   return <h1>{t("Hello World")}</h1>;
+ *
+ * export function ProductPage() {
+ *   return <h1>{t("Products")}</h1>;
+ * }
+ *
+ * // ============================================
+ * // Client Component
+ * // ============================================
+ * 'use client';
+ * import { useT } from '@sylphx/rosetta-react';
+ *
+ * export function AddToCartButton() {
+ *   const t = useT();
+ *   return <button>{t("Add to Cart")}</button>;
  * }
  */
 

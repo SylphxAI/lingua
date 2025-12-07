@@ -89,6 +89,14 @@ export class Rosetta {
 	}
 
 	/**
+	 * Get storage adapter (for RosettaProvider)
+	 * @internal
+	 */
+	getStorage(): StorageAdapter {
+		return this.storage;
+	}
+
+	/**
 	 * Get all locales that have translations (discovered from DB)
 	 */
 	async getAvailableLocales(): Promise<string[]> {
