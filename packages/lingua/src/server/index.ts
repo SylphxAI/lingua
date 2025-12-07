@@ -35,6 +35,6 @@ export {
 	i18nStorage,
 	runWithI18n,
 	t,
-} from './context'
-export type { I18nConfig, LocaleDetector } from './i18n'
-export { I18n } from './i18n'
+} from './context';
+export type { I18nConfig, LocaleDetector } from './i18n';
+export { I18n } from './i18n';

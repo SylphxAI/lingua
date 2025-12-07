@@ -26,7 +26,7 @@
  */
 
 import type { SourceString, SourceWithStatus, StorageAdapter } from '@sylphx/lingua';
-import { and, eq, inArray, isNull, notInArray, sql } from 'drizzle-orm';
+import { and, eq, inArray, notInArray, sql } from 'drizzle-orm';
 
 // ============================================
 // Types

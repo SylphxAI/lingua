@@ -1,9 +1,31 @@
-'use client'
+'use client';
 
-import type React from 'react'
-import { createContext, type ReactNode, useContext } from 'react'
-import { interpolate } from '../interpolate'
-import type { TranslationContextValue } from '../types'
+import { interpolate } from '@sylphx/lingua';
+import type React from 'react';
+import { type ReactNode, createContext, useContext } from 'react';
+
+// ============================================
+// Types
+// ============================================
+
+/**
+ * Translation context value for React
+ */
+export interface TranslationContextValue {
+	locale: string;
+	t: (text: string, params?: Record<string, string | number>) => string;
+}
+
+/**
+ * Props for I18nProvider
+ */
+export interface I18nProviderProps {
+	children: ReactNode;
+	/** Current locale code */
+	locale: string;
+	/** Translations map (source text -> translated text) */
+	translations: Record<string, string>;
+}
 
 // ============================================
 // Context
@@ -12,26 +34,18 @@ import type { TranslationContextValue } from '../types'
 const I18nContext = createContext<TranslationContextValue>({
 	locale: 'en',
 	t: (text) => text,
-})
+});
 
 // ============================================
 // Provider
 // ============================================
-
-interface I18nProviderProps {
-	/** Current locale code */
-	locale: string
-	/** Translations map (source text -> translated text) */
-	translations: Record<string, string>
-	children: ReactNode
-}
 
 /**
  * I18nProvider - wrap your app to enable client-side translations
  *
  * @example
  * // In layout.tsx (server component)
- * import { I18nProvider } from '@sylphx/lingua/client';
+ * import { I18nProvider } from '@sylphx/lingua-react';
  * import { getTranslationsForClient, getLocale } from '@sylphx/lingua/server';
  *
  * export default async function Layout({ children }) {
@@ -56,11 +70,11 @@ export function I18nProvider({
 }: I18nProviderProps): React.ReactElement {
 	const t = (text: string, params?: Record<string, string | number>): string => {
 		// Direct lookup by source text (no hashing needed on client)
-		const translated = translations[text] ?? text
-		return interpolate(translated, params)
-	}
+		const translated = translations[text] ?? text;
+		return interpolate(translated, params);
+	};
 
-	return <I18nContext.Provider value={{ locale, t }}>{children}</I18nContext.Provider>
+	return <I18nContext.Provider value={{ locale, t }}>{children}</I18nContext.Provider>;
 }
 
 // ============================================
@@ -71,7 +85,7 @@ export function I18nProvider({
  * Get the full translation context
  */
 export function useTranslation(): TranslationContextValue {
-	return useContext(I18nContext)
+	return useContext(I18nContext);
 }
 
 /**
@@ -83,14 +97,14 @@ export function useTranslation(): TranslationContextValue {
  * return <p>{t("Hello {name}", { name: user.name })}</p>;
  */
 export function useT(): (text: string, params?: Record<string, string | number>) => string {
-	const { t } = useContext(I18nContext)
-	return t
+	const { t } = useContext(I18nContext);
+	return t;
 }
 
 /**
  * Get current locale
  */
 export function useLocale(): string {
-	const { locale } = useContext(I18nContext)
-	return locale
+	const { locale } = useContext(I18nContext);
+	return locale;
 }
