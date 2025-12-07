@@ -1,4 +1,4 @@
-import type { LocaleInfo } from './types';
+import type { LocaleInfo } from './types'
 
 /**
  * Comprehensive list of supported locales
@@ -63,44 +63,44 @@ export const ALL_LOCALES: readonly LocaleInfo[] = [
 	{ code: 'th', name: 'Thai', nativeName: 'ภาษาไทย' },
 	{ code: 'vi', name: 'Vietnamese', nativeName: 'Tiếng Việt' },
 	{ code: 'id', name: 'Indonesian', nativeName: 'Bahasa Indonesia' },
-] as const;
+] as const
 
-export type LocaleCode = (typeof ALL_LOCALES)[number]['code'];
+export type LocaleCode = (typeof ALL_LOCALES)[number]['code']
 
 /**
  * Default locale
  */
-export const DEFAULT_LOCALE = 'en';
+export const DEFAULT_LOCALE = 'en'
 
 /**
  * Default enabled locales
  */
-export const DEFAULT_ENABLED_LOCALES: string[] = ['en', 'zh-TW', 'zh-CN'];
+export const DEFAULT_ENABLED_LOCALES: string[] = ['en', 'zh-TW', 'zh-CN']
 
 /**
  * Get locale info by code
  */
 export function getLocaleInfo(code: string): LocaleInfo | undefined {
-	return ALL_LOCALES.find((l) => l.code === code);
+	return ALL_LOCALES.find((l) => l.code === code)
 }
 
 /**
  * Get native name for a locale code
  */
 export function getLocaleNativeName(code: string): string {
-	return getLocaleInfo(code)?.nativeName ?? code;
+	return getLocaleInfo(code)?.nativeName ?? code
 }
 
 /**
  * Get English name for a locale code
  */
 export function getLocaleEnglishName(code: string): string {
-	return getLocaleInfo(code)?.name ?? code;
+	return getLocaleInfo(code)?.name ?? code
 }
 
 /**
  * Locale names map (code -> native name)
  */
 export const localeNames: Record<string, string> = Object.fromEntries(
-	ALL_LOCALES.map((l) => [l.code, l.nativeName])
-);
+	ALL_LOCALES.map((l) => [l.code, l.nativeName]),
+)

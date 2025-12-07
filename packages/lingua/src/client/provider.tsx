@@ -1,8 +1,9 @@
-'use client';
+'use client'
 
-import React, { createContext, useContext, type ReactNode } from 'react';
-import { interpolate } from '../interpolate';
-import type { TranslationContextValue } from '../types';
+import type React from 'react'
+import { createContext, type ReactNode, useContext } from 'react'
+import { interpolate } from '../interpolate'
+import type { TranslationContextValue } from '../types'
 
 // ============================================
 // Context
@@ -11,7 +12,7 @@ import type { TranslationContextValue } from '../types';
 const I18nContext = createContext<TranslationContextValue>({
 	locale: 'en',
 	t: (text) => text,
-});
+})
 
 // ============================================
 // Provider
@@ -19,10 +20,10 @@ const I18nContext = createContext<TranslationContextValue>({
 
 interface I18nProviderProps {
 	/** Current locale code */
-	locale: string;
+	locale: string
 	/** Translations map (source text -> translated text) */
-	translations: Record<string, string>;
-	children: ReactNode;
+	translations: Record<string, string>
+	children: ReactNode
 }
 
 /**
@@ -48,14 +49,18 @@ interface I18nProviderProps {
  *   ));
  * }
  */
-export function I18nProvider({ locale, translations, children }: I18nProviderProps): React.ReactElement {
+export function I18nProvider({
+	locale,
+	translations,
+	children,
+}: I18nProviderProps): React.ReactElement {
 	const t = (text: string, params?: Record<string, string | number>): string => {
 		// Direct lookup by source text (no hashing needed on client)
-		const translated = translations[text] ?? text;
-		return interpolate(translated, params);
-	};
+		const translated = translations[text] ?? text
+		return interpolate(translated, params)
+	}
 
-	return <I18nContext.Provider value={{ locale, t }}>{children}</I18nContext.Provider>;
+	return <I18nContext.Provider value={{ locale, t }}>{children}</I18nContext.Provider>
 }
 
 // ============================================
@@ -66,7 +71,7 @@ export function I18nProvider({ locale, translations, children }: I18nProviderPro
  * Get the full translation context
  */
 export function useTranslation(): TranslationContextValue {
-	return useContext(I18nContext);
+	return useContext(I18nContext)
 }
 
 /**
@@ -78,14 +83,14 @@ export function useTranslation(): TranslationContextValue {
  * return <p>{t("Hello {name}", { name: user.name })}</p>;
  */
 export function useT(): (text: string, params?: Record<string, string | number>) => string {
-	const { t } = useContext(I18nContext);
-	return t;
+	const { t } = useContext(I18nContext)
+	return t
 }
 
 /**
  * Get current locale
  */
 export function useLocale(): string {
-	const { locale } = useContext(I18nContext);
-	return locale;
+	const { locale } = useContext(I18nContext)
+	return locale
 }

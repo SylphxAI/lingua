@@ -25,17 +25,16 @@
  * }
  */
 
-export { I18n } from './i18n';
-export type { I18nConfig, LocaleDetector } from './i18n';
-
 export {
-	t,
-	getLocale,
+	flushCollectedStrings,
 	getDefaultLocale,
+	getI18nContext,
+	getLocale,
 	getTranslations,
 	getTranslationsForClient,
-	flushCollectedStrings,
 	i18nStorage,
-	getI18nContext,
 	runWithI18n,
-} from './context';
+	t,
+} from './context'
+export type { I18nConfig, LocaleDetector } from './i18n'
+export { I18n } from './i18n'

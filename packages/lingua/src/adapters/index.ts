@@ -9,5 +9,5 @@
  * });
  */
 
-export { OpenRouterAdapter } from './openrouter';
-export type { OpenRouterAdapterOptions } from './openrouter';
+export type { OpenRouterAdapterOptions } from './openrouter'
+export { OpenRouterAdapter } from './openrouter'

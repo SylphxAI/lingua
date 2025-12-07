@@ -29,4 +29,8 @@
  * ```
  */
 
-export { DrizzleStorageAdapter, type DrizzleStorageAdapterConfig, type DrizzleDatabase } from './adapter';
+export {
+	DrizzleStorageAdapter,
+	type DrizzleStorageAdapterConfig,
+	type DrizzleDatabase,
+} from './adapter';

@@ -1,15 +1,15 @@
-import { getLocaleNativeName } from '../locales';
-import type { TranslateAdapter } from '../types';
+import { getLocaleNativeName } from '../locales'
+import type { TranslateAdapter } from '../types'
 
 export interface OpenRouterAdapterOptions {
 	/** OpenRouter API key */
-	apiKey: string;
+	apiKey: string
 	/** Model to use (default: openai/gpt-4.1-mini) */
-	model?: string;
+	model?: string
 	/** Temperature for generation (default: 0.3) */
-	temperature?: number;
+	temperature?: number
 	/** Max tokens for response (default: 500) */
-	maxTokens?: number;
+	maxTokens?: number
 }
 
 /**
@@ -23,24 +23,24 @@ export interface OpenRouterAdapterOptions {
  * });
  */
 export class OpenRouterAdapter implements TranslateAdapter {
-	private apiKey: string;
-	private model: string;
-	private temperature: number;
-	private maxTokens: number;
+	private apiKey: string
+	private model: string
+	private temperature: number
+	private maxTokens: number
 
 	constructor(options: OpenRouterAdapterOptions) {
-		this.apiKey = options.apiKey;
-		this.model = options.model ?? 'openai/gpt-4.1-mini';
-		this.temperature = options.temperature ?? 0.3;
-		this.maxTokens = options.maxTokens ?? 500;
+		this.apiKey = options.apiKey
+		this.model = options.model ?? 'openai/gpt-4.1-mini'
+		this.temperature = options.temperature ?? 0.3
+		this.maxTokens = options.maxTokens ?? 500
 	}
 
 	async translate(
 		text: string,
-		options: { from: string; to: string; context?: string }
+		options: { from: string; to: string; context?: string },
 	): Promise<string> {
-		const fromLanguage = getLocaleNativeName(options.from);
-		const toLanguage = getLocaleNativeName(options.to);
+		const fromLanguage = getLocaleNativeName(options.from)
+		const toLanguage = getLocaleNativeName(options.to)
 
 		const prompt = `Translate the following UI text from ${fromLanguage} to ${toLanguage}.
 
@@ -56,7 +56,7 @@ ${options.context ? `Context: This text is used in ${options.context}` : ''}
 Text to translate:
 ${text}
 
-Translation:`;
+Translation:`
 
 		const response = await fetch('https://openrouter.ai/api/v1/chat/completions', {
 			method: 'POST',
@@ -70,39 +70,41 @@ Translation:`;
 				max_tokens: this.maxTokens,
 				temperature: this.temperature,
 			}),
-		});
+		})
 
 		if (!response.ok) {
-			const error = await response.text();
-			throw new Error(`OpenRouter API error: ${error}`);
+			const error = await response.text()
+			throw new Error(`OpenRouter API error: ${error}`)
 		}
 
-		const data = await response.json();
-		const translation = data.choices?.[0]?.message?.content?.trim();
+		const data = (await response.json()) as {
+			choices?: Array<{ message?: { content?: string } }>
+		}
+		const translation = data.choices?.[0]?.message?.content?.trim()
 
 		if (!translation) {
-			throw new Error('Empty translation response');
+			throw new Error('Empty translation response')
 		}
 
-		return translation;
+		return translation
 	}
 
 	async translateBatch(
 		texts: Array<{ text: string; context?: string }>,
-		options: { from: string; to: string }
+		options: { from: string; to: string },
 	): Promise<string[]> {
 		// Translate sequentially for now
 		// Could be optimized with parallel requests or batch API
-		const results: string[] = [];
+		const results: string[] = []
 
 		for (const item of texts) {
 			const translation = await this.translate(item.text, {
 				...options,
 				context: item.context,
-			});
-			results.push(translation);
+			})
+			results.push(translation)
 		}
 
-		return results;
+		return results
 	}
 }

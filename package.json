@@ -1,20 +1,20 @@
 {
-  "name": "lingua",
-  "private": true,
-  "workspaces": ["packages/*"],
-  "scripts": {
-    "build": "bun run --filter '*' build",
-    "dev": "bun run --filter '*' dev",
-    "test": "bun run --filter '*' test",
-    "lint": "biome check .",
-    "lint:fix": "biome check --write .",
-    "format": "biome format --write .",
-    "clean": "bun run --filter '*' clean",
-    "typecheck": "bun run --filter '*' typecheck"
-  },
-  "devDependencies": {
-    "@biomejs/biome": "^1.9.4",
-    "typescript": "^5.7.2"
-  },
-  "packageManager": "bun@1.1.38"
+	"name": "lingua",
+	"private": true,
+	"workspaces": ["packages/*"],
+	"scripts": {
+		"build": "bun run --filter '*' build",
+		"dev": "bun run --filter '*' dev",
+		"test": "bun run --filter '*' test",
+		"lint": "biome check .",
+		"lint:fix": "biome check --write .",
+		"format": "biome format --write .",
+		"clean": "bun run --filter '*' clean",
+		"typecheck": "bun run --filter '*' typecheck"
+	},
+	"devDependencies": {
+		"@biomejs/biome": "^1.9.4",
+		"typescript": "^5.7.2"
+	},
+	"packageManager": "bun@1.1.38"
 }

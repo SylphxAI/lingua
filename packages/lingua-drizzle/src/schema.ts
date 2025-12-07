@@ -83,7 +83,9 @@ export function createLinguaSchema<T extends PostgresSchemaHelpers>(
 	const linguaTranslations = pgTable(
 		translationsTableName,
 		{
-			id: serial ? serial('id').primaryKey() : integer('id').primaryKey().generatedAlwaysAsIdentity(),
+			id: serial
+				? serial('id').primaryKey()
+				: integer('id').primaryKey().generatedAlwaysAsIdentity(),
 			locale: text('locale').notNull(),
 			hash: text('hash').notNull(),
 			text: text('text').notNull(),

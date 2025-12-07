@@ -18,4 +18,4 @@
  * }
  */
 
-export { I18nProvider, useTranslation, useT, useLocale } from './provider';
+export { I18nProvider, useLocale, useT, useTranslation } from './provider'

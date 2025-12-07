@@ -3,11 +3,11 @@
  * Fast, simple, good distribution for string keys
  */
 function djb33x(str: string): number {
-	let hash = 5381;
+	let hash = 5381
 	for (let i = 0; i < str.length; i++) {
-		hash = (hash * 33) ^ str.charCodeAt(i);
+		hash = (hash * 33) ^ str.charCodeAt(i)
 	}
-	return hash >>> 0; // Convert to unsigned 32-bit
+	return hash >>> 0 // Convert to unsigned 32-bit
 }
 
 /**
@@ -23,6 +23,6 @@ function djb33x(str: string): number {
  * hashText("Submit", "form") // "e5f6g7h8" (different hash)
  */
 export function hashText(text: string, context?: string): string {
-	const input = context ? `${context}::${text.trim()}` : text.trim();
-	return djb33x(input).toString(16).padStart(8, '0');
+	const input = context ? `${context}::${text.trim()}` : text.trim()
+	return djb33x(input).toString(16).padStart(8, '0')
 }

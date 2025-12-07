@@ -10,11 +10,11 @@
  * interpolate("You have {count} items", { count: 5 }) // "You have 5 items"
  */
 export function interpolate(text: string, params?: Record<string, string | number>): string {
-	if (!params) return text;
+	if (!params) return text
 
-	let result = text;
+	let result = text
 	for (const [key, value] of Object.entries(params)) {
-		result = result.replaceAll(`{${key}}`, String(value));
+		result = result.replaceAll(`{${key}}`, String(value))
 	}
-	return result;
+	return result
 }
