@@ -1,5 +1,13 @@
 # Changelog
 
+## 0.1.2 (2025-12-07)
+
+Fix type constraints for Drizzle table compatibility
+
+### 🐛 Bug Fixes
+
+- **rosetta-drizzle:** use permissive types for better drizzle compatibility ([1331c5c](https://github.com/SylphxAI/rosetta/commit/1331c5c6c935cff1753f17e9af13923f8799999a))
+
 ## 0.1.1 (2025-12-07)
 
 Update drizzle-orm to 0.45.0 for better type compatibility
