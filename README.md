@@ -17,6 +17,9 @@ Lightweight i18n library with **production-time string collection** and **LLM-po
 ```bash
 bun add @sylphx/lingua
 
+# React bindings (for React/Next.js projects)
+bun add @sylphx/lingua-react
+
 # Optional: Drizzle adapter with pre-built schema
 bun add @sylphx/lingua-drizzle
 ```
@@ -177,7 +180,7 @@ export { t, flushCollectedStrings, getTranslationsForClient, getLocale } from '@
 ```tsx
 // app/layout.tsx
 import { i18n, flushCollectedStrings, getTranslationsForClient, getLocale } from '@/lib/i18n';
-import { I18nProvider } from '@sylphx/lingua/client';
+import { I18nProvider } from '@sylphx/lingua-react';
 
 export default async function RootLayout({ children }: { children: React.ReactNode }) {
   return i18n.init(async () => {
@@ -220,7 +223,7 @@ export function ServerComponent() {
 **Client Components:**
 ```tsx
 'use client';
-import { useT } from '@sylphx/lingua/client';
+import { useT } from '@sylphx/lingua-react';
 
 export function ClientComponent() {
   const t = useT();
@@ -535,9 +538,11 @@ getLocale()                // Get current locale
 getTranslationsForClient() // Get translations for client provider
 ```
 
-### Client (`@sylphx/lingua/client`)
+### React (`@sylphx/lingua-react`)
 
 ```tsx
+import { I18nProvider, useT, useLocale } from '@sylphx/lingua-react';
+
 <I18nProvider locale="en" translations={translations}>
   {children}
 </I18nProvider>
