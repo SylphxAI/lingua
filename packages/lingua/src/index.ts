@@ -30,6 +30,9 @@ export type {
 	// Core types
 	SourceString,
 	Translation,
+	TranslationStatus,
+	SourceWithStatus,
+	TranslationStats,
 	LocaleInfo,
 	TranslateOptions,
 	// Adapter interfaces
