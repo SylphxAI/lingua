@@ -3,13 +3,10 @@
  *
  * @example
  * ```ts
- * // 1. Create schema in your Drizzle schema file
- * import { pgTable, text, timestamp, integer, boolean, unique, serial } from 'drizzle-orm/pg-core';
+ * // 1. Add schema to your Drizzle schema file
  * import { createRosettaSchema } from '@sylphx/rosetta-drizzle';
  *
- * export const { rosettaSources, rosettaTranslations } = createRosettaSchema({
- *   pgTable, text, timestamp, integer, boolean, unique, serial
- * });
+ * export const { rosettaSources, rosettaTranslations } = createRosettaSchema();
  *
  * // 2. Use the adapter in your Rosetta setup
  * import { DrizzleStorageAdapter } from '@sylphx/rosetta-drizzle';
@@ -36,11 +33,27 @@ export {
 
 // Re-export schema helpers from main entry (avoids drizzle-kit ESM subpath issues)
 export {
+	// Functions
 	createRosettaSchema,
 	createRosettaSchemaSQLite,
 	createRosettaSchemaMySQL,
-	type PostgresSchemaHelpers,
-	type SQLiteSchemaHelpers,
-	type MySQLSchemaHelpers,
+	// PostgreSQL
+	pgRosettaSources,
+	pgRosettaTranslations,
+	pgRosettaSchema,
+	// SQLite
+	sqliteRosettaSources,
+	sqliteRosettaTranslations,
+	sqliteRosettaSchema,
+	// MySQL
+	mysqlRosettaSources,
+	mysqlRosettaTranslations,
+	mysqlRosettaSchema,
+	// Types
 	type RosettaSchemaOptions,
+	type RosettaSourcesTable,
+	type RosettaTranslationsTable,
+	type PgRosettaSchema,
+	type SqliteRosettaSchema,
+	type MysqlRosettaSchema,
 } from './schema';

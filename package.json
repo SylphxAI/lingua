@@ -17,5 +17,8 @@
 		"@sylphx/bump": "^1.6.1",
 		"typescript": "^5.7.2"
 	},
-	"packageManager": "bun@1.1.38"
+	"packageManager": "bun@1.1.38",
+	"dependencies": {
+		"bunup": "^0.16.10"
+	}
 }

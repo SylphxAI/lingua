@@ -20,7 +20,7 @@
 		"dist"
 	],
 	"scripts": {
-		"build": "bunup src/index.ts src/schema.ts --dts --format esm,cjs --external drizzle-orm --external @sylphx/rosetta",
+		"build": "tsup src/index.ts src/schema.ts --dts --format esm,cjs --external @sylphx/rosetta",
 		"dev": "bunup src/index.ts src/schema.ts --dts --format esm,cjs --external drizzle-orm --external @sylphx/rosetta --watch",
 		"test": "bun test",
 		"typecheck": "tsc --noEmit",
@@ -32,8 +32,10 @@
 	},
 	"devDependencies": {
 		"@types/bun": "^1.1.14",
-		"bunup": "^0.10.0",
+		"@typescript/native-preview": "^7.0.0-dev.20251207.1",
+		"bunup": "^0.16.10",
 		"drizzle-orm": "^0.45.0",
+		"tsup": "^8.5.1",
 		"typescript": "^5"
 	},
 	"publishConfig": {
