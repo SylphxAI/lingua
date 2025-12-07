@@ -75,7 +75,7 @@ export const rosettaTranslations = pgTable('rosetta_translations', {
 **Option A: Use `@sylphx/rosetta-drizzle` (Recommended)**
 
 ```typescript
-// lib/i18n/storage.ts
+// lib/rosetta/storage.ts
 import { DrizzleStorageAdapter } from '@sylphx/rosetta-drizzle';
 import { db } from '@/db';
 import { rosettaSources, rosettaTranslations } from '@/db/schema';
@@ -90,7 +90,7 @@ export const storage = new DrizzleStorageAdapter({
 **Option B: Implement `StorageAdapter` manually**
 
 ```typescript
-// lib/i18n/storage.ts
+// lib/rosetta/storage.ts
 import type { StorageAdapter } from '@sylphx/rosetta';
 import { db } from '@/db';
 import { eq, inArray, notInArray } from 'drizzle-orm';
@@ -150,16 +150,16 @@ export const storage: StorageAdapter = {
 };
 ```
 
-### 3. Initialize I18n
+### 3. Initialize Rosetta
 
 ```typescript
-// lib/i18n/index.ts
-import { I18n } from '@sylphx/rosetta/server';
+// lib/rosetta/index.ts
+import { Rosetta } from '@sylphx/rosetta/server';
 import { OpenRouterAdapter } from '@sylphx/rosetta/adapters';
 import { cookies } from 'next/headers';
 import { storage } from './storage';
 
-export const i18n = new I18n({
+export const rosetta = new Rosetta({
   storage,
   translator: new OpenRouterAdapter({
     apiKey: process.env.OPENROUTER_API_KEY!,
@@ -179,20 +179,20 @@ export { t, flushCollectedStrings, getTranslationsForClient, getLocale } from '@
 
 ```tsx
 // app/layout.tsx
-import { i18n, flushCollectedStrings, getTranslationsForClient, getLocale } from '@/lib/i18n';
-import { I18nProvider } from '@sylphx/rosetta-react';
+import { rosetta, flushCollectedStrings, getTranslationsForClient, getLocale } from '@/lib/rosetta';
+import { RosettaProvider } from '@sylphx/rosetta-react';
 
 export default async function RootLayout({ children }: { children: React.ReactNode }) {
-  return i18n.init(async () => {
+  return rosetta.init(async () => {
     const content = (
       <html lang={getLocale()}>
         <body>
-          <I18nProvider
+          <RosettaProvider
             locale={getLocale()}
             translations={getTranslationsForClient()}
           >
             {children}
-          </I18nProvider>
+          </RosettaProvider>
         </body>
       </html>
     );
@@ -208,7 +208,7 @@ export default async function RootLayout({ children }: { children: React.ReactNo
 
 **Server Components:**
 ```tsx
-import { t } from '@/lib/i18n';
+import { t } from '@/lib/rosetta';
 
 export function ServerComponent() {
   return (
@@ -238,98 +238,98 @@ export function ClientComponent() {
 Create API routes to manage translations:
 
 ```typescript
-// app/api/i18n/sources/route.ts
-import { i18n } from '@/lib/i18n';
+// app/api/rosetta/sources/route.ts
+import { rosetta } from '@/lib/rosetta';
 import { NextResponse } from 'next/server';
 
-// GET /api/i18n/sources - Get all sources with translation status
+// GET /api/rosetta/sources - Get all sources with translation status
 export async function GET() {
-  const sources = await i18n.getSourcesWithStatus();
+  const sources = await rosetta.getSourcesWithStatus();
   return NextResponse.json(sources);
 }
 ```
 
 ```typescript
-// app/api/i18n/stats/route.ts
-import { i18n } from '@/lib/i18n';
+// app/api/rosetta/stats/route.ts
+import { rosetta } from '@/lib/rosetta';
 import { NextResponse } from 'next/server';
 
-// GET /api/i18n/stats - Get translation statistics
+// GET /api/rosetta/stats - Get translation statistics
 export async function GET() {
-  const stats = await i18n.getStats();
+  const stats = await rosetta.getStats();
   return NextResponse.json(stats);
 }
 ```
 
 ```typescript
-// app/api/i18n/translate/route.ts
-import { i18n } from '@/lib/i18n';
+// app/api/rosetta/translate/route.ts
+import { rosetta } from '@/lib/rosetta';
 import { NextResponse } from 'next/server';
 
-// POST /api/i18n/translate - Generate translation for a string
+// POST /api/rosetta/translate - Generate translation for a string
 export async function POST(req: Request) {
   const { text, locale, context } = await req.json();
-  const translation = await i18n.generateAndSave(text, locale, context);
+  const translation = await rosetta.generateAndSave(text, locale, context);
   return NextResponse.json({ translation });
 }
 ```
 
 ```typescript
-// app/api/i18n/translate/batch/route.ts
-import { i18n } from '@/lib/i18n';
+// app/api/rosetta/translate/batch/route.ts
+import { rosetta } from '@/lib/rosetta';
 import { NextResponse } from 'next/server';
 
-// POST /api/i18n/translate/batch - Batch translate strings
+// POST /api/rosetta/translate/batch - Batch translate strings
 export async function POST(req: Request) {
   const { items, locale } = await req.json();
-  const result = await i18n.batchTranslate(items, locale);
+  const result = await rosetta.batchTranslate(items, locale);
   return NextResponse.json(result);
 }
 ```
 
 ```typescript
-// app/api/i18n/translations/route.ts
-import { i18n } from '@/lib/i18n';
+// app/api/rosetta/translations/route.ts
+import { rosetta } from '@/lib/rosetta';
 import { NextResponse } from 'next/server';
 
-// PUT /api/i18n/translations - Save manual translation
+// PUT /api/rosetta/translations - Save manual translation
 export async function PUT(req: Request) {
   const { locale, hash, text } = await req.json();
-  await i18n.saveTranslationByHash(locale, hash, text, { autoGenerated: false });
+  await rosetta.saveTranslationByHash(locale, hash, text, { autoGenerated: false });
   return NextResponse.json({ success: true });
 }
 ```
 
 ```typescript
-// app/api/i18n/review/route.ts
-import { i18n } from '@/lib/i18n';
+// app/api/rosetta/review/route.ts
+import { rosetta } from '@/lib/rosetta';
 import { NextResponse } from 'next/server';
 
-// POST /api/i18n/review - Mark translation as reviewed
+// POST /api/rosetta/review - Mark translation as reviewed
 export async function POST(req: Request) {
   const { hash, locale } = await req.json();
-  await i18n.markAsReviewed(hash, locale);
+  await rosetta.markAsReviewed(hash, locale);
   return NextResponse.json({ success: true });
 }
 ```
 
 ```typescript
-// app/api/i18n/export/route.ts
-import { i18n } from '@/lib/i18n';
+// app/api/rosetta/export/route.ts
+import { rosetta } from '@/lib/rosetta';
 import { NextResponse } from 'next/server';
 
-// GET /api/i18n/export?locale=zh-TW - Export translations
+// GET /api/rosetta/export?locale=zh-TW - Export translations
 export async function GET(req: Request) {
   const { searchParams } = new URL(req.url);
   const locale = searchParams.get('locale') ?? 'zh-TW';
-  const data = await i18n.exportTranslations(locale);
+  const data = await rosetta.exportTranslations(locale);
   return NextResponse.json(data);
 }
 
-// POST /api/i18n/export - Import translations
+// POST /api/rosetta/export - Import translations
 export async function POST(req: Request) {
   const { locale, data } = await req.json();
-  const count = await i18n.importTranslations(locale, data);
+  const count = await rosetta.importTranslations(locale, data);
   return NextResponse.json({ imported: count });
 }
 ```
@@ -359,12 +359,12 @@ export function TranslationDashboard() {
   const [selectedLocale, setSelectedLocale] = useState('zh-TW');
 
   useEffect(() => {
-    fetch('/api/i18n/sources').then(r => r.json()).then(setSources);
-    fetch('/api/i18n/stats').then(r => r.json()).then(setStats);
+    fetch('/api/rosetta/sources').then(r => r.json()).then(setSources);
+    fetch('/api/rosetta/stats').then(r => r.json()).then(setStats);
   }, []);
 
   const handleTranslate = async (source: Source) => {
-    const res = await fetch('/api/i18n/translate', {
+    const res = await fetch('/api/rosetta/translate', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({
@@ -375,12 +375,12 @@ export function TranslationDashboard() {
     });
     const { translation } = await res.json();
     // Refresh sources
-    fetch('/api/i18n/sources').then(r => r.json()).then(setSources);
+    fetch('/api/rosetta/sources').then(r => r.json()).then(setSources);
   };
 
   const handleBatchTranslate = async () => {
     const untranslated = sources.filter(s => !s.translations[selectedLocale]);
-    await fetch('/api/i18n/translate/batch', {
+    await fetch('/api/rosetta/translate/batch', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({
@@ -388,7 +388,7 @@ export function TranslationDashboard() {
         locale: selectedLocale,
       }),
     });
-    fetch('/api/i18n/sources').then(r => r.json()).then(setSources);
+    fetch('/api/rosetta/sources').then(r => r.json()).then(setSources);
   };
 
   return (
@@ -479,10 +479,10 @@ export function TranslationDashboard() {
 
 ### Server (`@sylphx/rosetta/server`)
 
-#### `I18n` class
+#### `Rosetta` class
 
 ```typescript
-const i18n = new I18n({
+const rosetta = new Rosetta({
   storage: StorageAdapter,       // Required: your storage adapter
   translator?: TranslateAdapter, // Optional: for auto-translation
   defaultLocale?: string,        // Default: 'en'
@@ -491,33 +491,33 @@ const i18n = new I18n({
 });
 
 // Core methods
-await i18n.init(fn)                  // Initialize context and run function
-await i18n.getClientData()           // Get data for client hydration
-await i18n.loadTranslations(locale)  // Load translations for a locale
+await rosetta.init(fn)                  // Initialize context and run function
+await rosetta.getClientData()           // Get data for client hydration
+await rosetta.loadTranslations(locale)  // Load translations for a locale
 
 // Source/translation management
-await i18n.getSources()              // Get all source strings
-await i18n.getUntranslated(locale)   // Get untranslated strings for locale
-await i18n.saveTranslation(locale, text, translation, context?)
+await rosetta.getSources()              // Get all source strings
+await rosetta.getUntranslated(locale)   // Get untranslated strings for locale
+await rosetta.saveTranslation(locale, text, translation, context?)
 
 // Auto-translation
-await i18n.generateTranslation(text, locale, context?)
-await i18n.generateAndSave(text, locale, context?)
-await i18n.generateAllUntranslated(locale, onProgress?)
-await i18n.batchTranslate(items, locale)
+await rosetta.generateTranslation(text, locale, context?)
+await rosetta.generateAndSave(text, locale, context?)
+await rosetta.generateAllUntranslated(locale, onProgress?)
+await rosetta.batchTranslate(items, locale)
 
 // Admin methods
-await i18n.getSourcesWithStatus(locales)  // Get sources with translation status
-await i18n.getStats(locales)              // Get translation statistics
-await i18n.markAsReviewed(hash, locale)
-await i18n.saveTranslationByHash(locale, hash, text, options?)
-await i18n.exportTranslations(locale)
-await i18n.importTranslations(locale, data, options?)
+await rosetta.getSourcesWithStatus(locales)  // Get sources with translation status
+await rosetta.getStats(locales)              // Get translation statistics
+await rosetta.markAsReviewed(hash, locale)
+await rosetta.saveTranslationByHash(locale, hash, text, options?)
+await rosetta.exportTranslations(locale)
+await rosetta.importTranslations(locale, data, options?)
 
 // Utilities
-await i18n.getAvailableLocales()     // Get locales that have translations (from DB)
-i18n.getDefaultLocale()              // Get default locale
-i18n.invalidateCache()               // Clear translation cache
+await rosetta.getAvailableLocales()     // Get locales that have translations (from DB)
+rosetta.getDefaultLocale()              // Get default locale
+rosetta.invalidateCache()               // Clear translation cache
 ```
 
 #### `t(text, params?)` function
@@ -539,11 +539,11 @@ getTranslationsForClient() // Get translations for client provider
 ### React (`@sylphx/rosetta-react`)
 
 ```tsx
-import { I18nProvider, useT, useLocale } from '@sylphx/rosetta-react';
+import { RosettaProvider, useT, useLocale } from '@sylphx/rosetta-react';
 
-<I18nProvider locale="en" translations={translations}>
+<RosettaProvider locale="en" translations={translations}>
   {children}
-</I18nProvider>
+</RosettaProvider>
 
 const t = useT();           // Get translation function
 const locale = useLocale(); // Get current locale
