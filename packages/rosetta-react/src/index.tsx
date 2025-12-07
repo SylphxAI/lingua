@@ -9,11 +9,29 @@ import { type ReactNode, createContext, useContext } from 'react';
 // ============================================
 
 /**
+ * Translation options with context for disambiguation
+ */
+export interface TranslateOptions {
+	/** Context for disambiguation (e.g., "button", "menu") */
+	context?: string;
+	/** Interpolation params for variables like {name} */
+	params?: Record<string, string | number>;
+}
+
+/**
+ * Translation function type (matches server-side t() API)
+ */
+export type TranslateFunction = (
+	text: string,
+	paramsOrOptions?: Record<string, string | number> | TranslateOptions
+) => string;
+
+/**
  * Translation context value for React
  */
 export interface TranslationContextValue {
 	locale: string;
-	t: (text: string, params?: Record<string, string | number>) => string;
+	t: TranslateFunction;
 }
 
 /**
@@ -33,7 +51,14 @@ export interface RosettaProviderProps {
 
 const RosettaReactContext = createContext<TranslationContextValue>({
 	locale: 'en',
-	t: (text) => text,
+	t: (text, paramsOrOptions) => {
+		// Default fallback: just interpolate without translation
+		const params =
+			paramsOrOptions && 'params' in paramsOrOptions
+				? (paramsOrOptions as TranslateOptions).params
+				: (paramsOrOptions as Record<string, string | number> | undefined);
+		return interpolate(text, params);
+	},
 });
 
 // ============================================
@@ -68,9 +93,28 @@ export function RosettaProvider({
 	translations,
 	children,
 }: RosettaProviderProps): React.ReactElement {
-	const t = (text: string, params?: Record<string, string | number>): string => {
-		// Use same hash-based lookup as server
-		const hash = hashText(text);
+	const t: TranslateFunction = (text, paramsOrOptions) => {
+		// Determine if paramsOrOptions is TranslateOptions or direct interpolation params
+		// TranslateOptions has 'context' or 'params' keys
+		const isTranslateOptions =
+			paramsOrOptions &&
+			('context' in paramsOrOptions || 'params' in paramsOrOptions) &&
+			// Heuristic: if it only has context/params keys, it's TranslateOptions
+			Object.keys(paramsOrOptions).every((k) => k === 'context' || k === 'params');
+
+		let context: string | undefined;
+		let params: Record<string, string | number> | undefined;
+
+		if (isTranslateOptions) {
+			const opts = paramsOrOptions as TranslateOptions;
+			context = opts.context;
+			params = opts.params;
+		} else {
+			params = paramsOrOptions as Record<string, string | number> | undefined;
+		}
+
+		// Use same hash-based lookup as server (with context support)
+		const hash = hashText(text, context);
 		const translated = translations[hash] ?? text;
 		return interpolate(translated, params);
 	};
@@ -96,8 +140,10 @@ export function useTranslation(): TranslationContextValue {
  * const t = useT();
  * return <button>{t("Sign In")}</button>;
  * return <p>{t("Hello {name}", { name: user.name })}</p>;
+ * // With context for disambiguation
+ * return <button>{t("Submit", { context: "form" })}</button>;
  */
-export function useT(): (text: string, params?: Record<string, string | number>) => string {
+export function useT(): TranslateFunction {
 	const { t } = useContext(RosettaReactContext);
 	return t;
 }
