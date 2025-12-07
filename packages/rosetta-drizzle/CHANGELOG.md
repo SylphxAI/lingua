@@ -1,5 +1,13 @@
 # Changelog
 
+## 0.1.3 (2025-12-07)
+
+Fix DrizzleDatabase type contravariance issue
+
+### 🐛 Bug Fixes
+
+- **rosetta-drizzle:** use any for DrizzleDatabase method args ([906614e](https://github.com/SylphxAI/rosetta/commit/906614e14d04b5b6fd05b2bf944742b9e41a036d))
+
 ## 0.1.2 (2025-12-07)
 
 Fix type constraints for Drizzle table compatibility
