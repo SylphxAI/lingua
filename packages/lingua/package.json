@@ -1,0 +1,69 @@
+{
+  "name": "@sylphx/lingua",
+  "version": "0.1.0",
+  "description": "Lightweight i18n library with LLM-powered translation generation",
+  "license": "MIT",
+  "type": "module",
+  "exports": {
+    ".": {
+      "types": "./dist/index.d.ts",
+      "import": "./dist/index.js"
+    },
+    "./server": {
+      "types": "./dist/server/index.d.ts",
+      "import": "./dist/server/index.js"
+    },
+    "./client": {
+      "types": "./dist/client/index.d.ts",
+      "import": "./dist/client/index.js"
+    },
+    "./adapters": {
+      "types": "./dist/adapters/index.d.ts",
+      "import": "./dist/adapters/index.js"
+    }
+  },
+  "files": ["dist"],
+  "scripts": {
+    "build": "bunup src/index.ts src/server/index.ts src/client/index.ts src/adapters/index.ts --dts --external react --external react-dom",
+    "dev": "bunup src/index.ts src/server/index.ts src/client/index.ts src/adapters/index.ts --dts --external react --external react-dom --watch",
+    "test": "bun test",
+    "typecheck": "tsc --noEmit",
+    "clean": "rm -rf dist"
+  },
+  "peerDependencies": {
+    "react": "^18.0.0 || ^19.0.0"
+  },
+  "peerDependenciesMeta": {
+    "react": {
+      "optional": true
+    }
+  },
+  "devDependencies": {
+    "@types/bun": "^1.1.14",
+    "@types/react": "^19",
+    "bunup": "^0.10.0",
+    "react": "^19.0.0",
+    "typescript": "^5"
+  },
+  "publishConfig": {
+    "access": "public"
+  },
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/SylphxAI/lingua.git",
+    "directory": "packages/lingua"
+  },
+  "homepage": "https://github.com/SylphxAI/lingua#readme",
+  "bugs": {
+    "url": "https://github.com/SylphxAI/lingua/issues"
+  },
+  "keywords": [
+    "i18n",
+    "internationalization",
+    "translation",
+    "localization",
+    "react",
+    "llm",
+    "ai-translation"
+  ]
+}
