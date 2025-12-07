@@ -10,7 +10,9 @@
 			"import": "./dist/index.js"
 		}
 	},
-	"files": ["dist"],
+	"files": [
+		"dist"
+	],
 	"scripts": {
 		"build": "bunup src/index.tsx --dts --external react --external @sylphx/lingua",
 		"dev": "bunup src/index.tsx --dts --external react --external @sylphx/lingua --watch",
@@ -39,5 +41,12 @@
 	"bugs": {
 		"url": "https://github.com/SylphxAI/lingua/issues"
 	},
-	"keywords": ["i18n", "react", "translation", "lingua", "hooks", "provider"]
+	"keywords": [
+		"i18n",
+		"react",
+		"translation",
+		"lingua",
+		"hooks",
+		"provider"
+	]
 }
