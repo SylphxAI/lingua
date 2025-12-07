@@ -2,26 +2,26 @@ import { AsyncLocalStorage } from 'node:async_hooks';
 import { hashText } from '../hash';
 import { interpolate } from '../interpolate';
 import { DEFAULT_LOCALE } from '../locales';
-import type { I18nContext, TranslateOptions } from '../types';
+import type { RosettaContext, TranslateOptions } from '../types';
 
 // ============================================
 // AsyncLocalStorage for request-scoped context
 // ============================================
 
-export const i18nStorage: AsyncLocalStorage<I18nContext> = new AsyncLocalStorage<I18nContext>();
+export const rosettaStorage: AsyncLocalStorage<RosettaContext> = new AsyncLocalStorage<RosettaContext>();
 
 /**
- * Get current i18n context
+ * Get current Rosetta context
  */
-export function getI18nContext(): I18nContext | undefined {
-	return i18nStorage.getStore();
+export function getRosettaContext(): RosettaContext | undefined {
+	return rosettaStorage.getStore();
 }
 
 /**
- * Run a function with i18n context
+ * Run a function with Rosetta context
  */
-export function runWithI18n<T>(context: I18nContext, fn: () => T): T {
-	return i18nStorage.run(context, fn);
+export function runWithRosetta<T>(context: RosettaContext, fn: () => T): T {
+	return rosettaStorage.run(context, fn);
 }
 
 // ============================================
@@ -54,7 +54,7 @@ function queueForCollection(text: string, hash: string, context?: string): void 
 export async function flushCollectedStrings(): Promise<void> {
 	if (pendingStrings.length === 0) return;
 
-	const ctx = getI18nContext();
+	const ctx = getRosettaContext();
 	if (!ctx?.storage) return;
 
 	const items = [...pendingStrings];
@@ -92,7 +92,7 @@ export function t(
 	text: string,
 	paramsOrOptions?: Record<string, string | number> | TranslateOptions
 ): string {
-	const store = i18nStorage.getStore();
+	const store = rosettaStorage.getStore();
 
 	// Determine if paramsOrOptions is TranslateOptions or interpolation params
 	const isTranslateOptions = paramsOrOptions && 'context' in paramsOrOptions;
@@ -106,10 +106,10 @@ export function t(
 	// Queue for collection (production-safe, non-blocking)
 	queueForCollection(text, hash, context);
 
-	// No store means initI18n wasn't called - fallback to source
+	// No store means Rosetta.init() wasn't called - fallback to source
 	if (!store) {
 		if (process.env.NODE_ENV === 'development') {
-			console.warn('[rosetta] t() called outside initI18n context');
+			console.warn('[rosetta] t() called outside Rosetta.init() context');
 		}
 		return interpolate(text, params);
 	}
@@ -128,21 +128,21 @@ export function t(
  * Get current locale from context
  */
 export function getLocale(): string {
-	return i18nStorage.getStore()?.locale ?? DEFAULT_LOCALE;
+	return rosettaStorage.getStore()?.locale ?? DEFAULT_LOCALE;
 }
 
 /**
  * Get default locale from context
  */
 export function getDefaultLocale(): string {
-	return i18nStorage.getStore()?.defaultLocale ?? DEFAULT_LOCALE;
+	return rosettaStorage.getStore()?.defaultLocale ?? DEFAULT_LOCALE;
 }
 
 /**
  * Get translations map from context
  */
 export function getTranslations(): Map<string, string> {
-	return i18nStorage.getStore()?.translations ?? new Map();
+	return rosettaStorage.getStore()?.translations ?? new Map();
 }
 
 /**
@@ -150,5 +150,5 @@ export function getTranslations(): Map<string, string> {
  * Returns source text -> translated text map
  */
 export function getTranslationsForClient(): Record<string, string> {
-	return i18nStorage.getStore()?.translationsForClient ?? {};
+	return rosettaStorage.getStore()?.translationsForClient ?? {};
 }

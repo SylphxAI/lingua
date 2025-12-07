@@ -217,9 +217,9 @@ export interface TranslateAdapter {
 // ============================================
 
 /**
- * I18n context stored in AsyncLocalStorage
+ * Rosetta context stored in AsyncLocalStorage
  */
-export interface I18nContext {
+export interface RosettaContext {
 	locale: string;
 	defaultLocale: string;
 	/** hash -> translated text (for server lookup) */

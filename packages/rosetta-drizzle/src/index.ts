@@ -11,9 +11,9 @@
  *   pgTable, text, timestamp, integer, boolean, unique, serial
  * });
  *
- * // 2. Use the adapter in your i18n setup
+ * // 2. Use the adapter in your Rosetta setup
  * import { DrizzleStorageAdapter } from '@sylphx/rosetta-drizzle';
- * import { I18n } from '@sylphx/rosetta/server';
+ * import { Rosetta } from '@sylphx/rosetta/server';
  *
  * const storage = new DrizzleStorageAdapter({
  *   db,
@@ -21,10 +21,9 @@
  *   translations: rosettaTranslations,
  * });
  *
- * export const i18n = new I18n({
+ * export const rosetta = new Rosetta({
  *   storage,
  *   defaultLocale: 'en',
- *   enabledLocales: ['en', 'zh-TW', 'ja'],
  * });
  * ```
  */

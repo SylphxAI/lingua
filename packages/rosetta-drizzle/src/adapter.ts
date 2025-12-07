@@ -17,10 +17,9 @@
  *   translations: rosettaTranslations,
  * });
  *
- * const i18n = new I18n({
+ * const rosetta = new Rosetta({
  *   storage,
  *   defaultLocale: 'en',
- *   enabledLocales: ['en', 'zh-TW', 'ja'],
  * });
  * ```
  */

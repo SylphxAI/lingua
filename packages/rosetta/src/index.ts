@@ -38,5 +38,5 @@ export type {
 	StorageAdapter,
 	TranslateAdapter,
 	// Context types
-	I18nContext,
+	RosettaContext,
 } from './types';

@@ -7,7 +7,7 @@ import type {
 	TranslateAdapter,
 	TranslationStats,
 } from '../types';
-import { runWithI18n } from './context';
+import { runWithRosetta } from './context';
 
 /**
  * Locale detector function type
@@ -15,9 +15,9 @@ import { runWithI18n } from './context';
 export type LocaleDetector = () => Promise<string> | string;
 
 /**
- * I18n server configuration
+ * Rosetta server configuration
  */
-export interface I18nConfig {
+export interface RosettaConfig {
 	/** Storage adapter for translations */
 	storage: StorageAdapter;
 	/** Optional translation adapter for auto-translation */
@@ -38,10 +38,10 @@ interface LoadedTranslations {
 }
 
 /**
- * Server-side I18n manager
+ * Server-side Rosetta manager
  *
  * @example
- * const i18n = new I18n({
+ * const rosetta = new Rosetta({
  *   storage: new DrizzleStorageAdapter(db),
  *   translator: new OpenRouterAdapter({ apiKey }),
  *   defaultLocale: 'en',
@@ -50,12 +50,12 @@ interface LoadedTranslations {
  *
  * // In layout.tsx
  * export default async function Layout({ children }) {
- *   return i18n.init(async () => (
+ *   return rosetta.init(async () => (
  *     <html><body>{children}</body></html>
  *   ));
  * }
  */
-export class I18n {
+export class Rosetta {
 	private storage: StorageAdapter;
 	private translator?: TranslateAdapter;
 	private defaultLocale: string;
@@ -67,7 +67,7 @@ export class I18n {
 	private availableLocalesCache: string[] | null = null;
 	private lastCacheTime = 0;
 
-	constructor(config: I18nConfig) {
+	constructor(config: RosettaConfig) {
 		this.storage = config.storage;
 		this.translator = config.translator;
 		this.defaultLocale = config.defaultLocale ?? DEFAULT_LOCALE;
@@ -163,11 +163,11 @@ export class I18n {
 	}
 
 	/**
-	 * Initialize i18n context for the current request
+	 * Initialize Rosetta context for the current request
 	 *
 	 * @example
 	 * export default async function Layout({ children }) {
-	 *   return i18n.init(async () => (
+	 *   return rosetta.init(async () => (
 	 *     <html><body>{children}</body></html>
 	 *   ));
 	 * }
@@ -176,7 +176,7 @@ export class I18n {
 		const locale = await this.detectLocale();
 		const loaded = await this.loadTranslations(locale);
 
-		return runWithI18n(
+		return runWithRosetta(
 			{
 				locale,
 				defaultLocale: this.defaultLocale,
@@ -189,7 +189,7 @@ export class I18n {
 	}
 
 	/**
-	 * Get i18n data for client hydration
+	 * Get Rosetta data for client hydration
 	 */
 	async getClientData(): Promise<{
 		locale: string;

@@ -17,9 +17,9 @@ export interface TranslationContextValue {
 }
 
 /**
- * Props for I18nProvider
+ * Props for RosettaProvider
  */
-export interface I18nProviderProps {
+export interface RosettaProviderProps {
 	children: ReactNode;
 	/** Current locale code */
 	locale: string;
@@ -31,7 +31,7 @@ export interface I18nProviderProps {
 // Context
 // ============================================
 
-const I18nContext = createContext<TranslationContextValue>({
+const RosettaReactContext = createContext<TranslationContextValue>({
 	locale: 'en',
 	t: (text) => text,
 });
@@ -41,40 +41,40 @@ const I18nContext = createContext<TranslationContextValue>({
 // ============================================
 
 /**
- * I18nProvider - wrap your app to enable client-side translations
+ * RosettaProvider - wrap your app to enable client-side translations
  *
  * @example
  * // In layout.tsx (server component)
- * import { I18nProvider } from '@sylphx/rosetta-react';
+ * import { RosettaProvider } from '@sylphx/rosetta-react';
  * import { getTranslationsForClient, getLocale } from '@sylphx/rosetta/server';
  *
  * export default async function Layout({ children }) {
- *   return i18n.init(async () => (
+ *   return rosetta.init(async () => (
  *     <html>
  *       <body>
- *         <I18nProvider
+ *         <RosettaProvider
  *           locale={getLocale()}
  *           translations={getTranslationsForClient()}
  *         >
  *           {children}
- *         </I18nProvider>
+ *         </RosettaProvider>
  *       </body>
  *     </html>
  *   ));
  * }
  */
-export function I18nProvider({
+export function RosettaProvider({
 	locale,
 	translations,
 	children,
-}: I18nProviderProps): React.ReactElement {
+}: RosettaProviderProps): React.ReactElement {
 	const t = (text: string, params?: Record<string, string | number>): string => {
 		// Direct lookup by source text (no hashing needed on client)
 		const translated = translations[text] ?? text;
 		return interpolate(translated, params);
 	};
 
-	return <I18nContext.Provider value={{ locale, t }}>{children}</I18nContext.Provider>;
+	return <RosettaReactContext.Provider value={{ locale, t }}>{children}</RosettaReactContext.Provider>;
 }
 
 // ============================================
@@ -85,7 +85,7 @@ export function I18nProvider({
  * Get the full translation context
  */
 export function useTranslation(): TranslationContextValue {
-	return useContext(I18nContext);
+	return useContext(RosettaReactContext);
 }
 
 /**
@@ -97,7 +97,7 @@ export function useTranslation(): TranslationContextValue {
  * return <p>{t("Hello {name}", { name: user.name })}</p>;
  */
 export function useT(): (text: string, params?: Record<string, string | number>) => string {
-	const { t } = useContext(I18nContext);
+	const { t } = useContext(RosettaReactContext);
 	return t;
 }
 
@@ -105,6 +105,6 @@ export function useT(): (text: string, params?: Record<string, string | number>)
  * Get current locale
  */
 export function useLocale(): string {
-	const { locale } = useContext(I18nContext);
+	const { locale } = useContext(RosettaReactContext);
 	return locale;
 }
