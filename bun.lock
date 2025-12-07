@@ -3,7 +3,7 @@
   "configVersion": 1,
   "workspaces": {
     "": {
-      "name": "lingua",
+      "name": "rosetta",
       "devDependencies": {
         "@biomejs/biome": "^1.9.4",
         "@sylphx/bump": "^1.6.1",
