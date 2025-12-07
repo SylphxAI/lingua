@@ -1,20 +1,20 @@
 /**
- * Drizzle Storage Adapter for @sylphx/lingua
+ * Drizzle Storage Adapter for @sylphx/rosetta
  *
  * @example
  * ```ts
  * import { drizzle } from 'drizzle-orm/postgres-js';
  * import postgres from 'postgres';
- * import { DrizzleStorageAdapter } from '@sylphx/lingua-drizzle';
- * import { linguaSources, linguaTranslations } from './schema';
+ * import { DrizzleStorageAdapter } from '@sylphx/rosetta-drizzle';
+ * import { rosettaSources, rosettaTranslations } from './schema';
  *
  * const client = postgres(process.env.DATABASE_URL!);
  * const db = drizzle(client);
  *
  * const storage = new DrizzleStorageAdapter({
  *   db,
- *   sources: linguaSources,
- *   translations: linguaTranslations,
+ *   sources: rosettaSources,
+ *   translations: rosettaTranslations,
  * });
  *
  * const i18n = new I18n({
@@ -25,7 +25,7 @@
  * ```
  */
 
-import type { SourceString, SourceWithStatus, StorageAdapter } from '@sylphx/lingua';
+import type { SourceString, SourceWithStatus, StorageAdapter } from '@sylphx/rosetta';
 import { and, eq, inArray, notInArray, sql } from 'drizzle-orm';
 
 // ============================================
@@ -35,7 +35,7 @@ import { and, eq, inArray, notInArray, sql } from 'drizzle-orm';
 /**
  * Generic Drizzle table type for sources
  */
-export interface LinguaSourcesTableType {
+export interface RosettaSourcesTableType {
 	id: unknown;
 	hash: unknown;
 	text: unknown;
@@ -48,7 +48,7 @@ export interface LinguaSourcesTableType {
 /**
  * Generic Drizzle table type for translations
  */
-export interface LinguaTranslationsTableType {
+export interface RosettaTranslationsTableType {
 	id: unknown;
 	locale: unknown;
 	hash: unknown;
@@ -82,11 +82,11 @@ export interface DrizzleStorageAdapterConfig<
 	 */
 	db: TDB;
 	/**
-	 * Lingua sources table created by createLinguaSchema
+	 * Rosetta sources table created by createRosettaSchema
 	 */
 	sources: TSources;
 	/**
-	 * Lingua translations table created by createLinguaSchema
+	 * Rosetta translations table created by createRosettaSchema
 	 */
 	translations: TTranslations;
 }

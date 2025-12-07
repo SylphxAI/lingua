@@ -1,5 +1,5 @@
 {
-	"name": "@sylphx/lingua",
+	"name": "@sylphx/rosetta",
 	"version": "0.1.0",
 	"description": "Lightweight i18n library with LLM-powered translation generation",
 	"license": "MIT",
@@ -44,12 +44,12 @@
 	},
 	"repository": {
 		"type": "git",
-		"url": "https://github.com/SylphxAI/lingua.git",
-		"directory": "packages/lingua"
+		"url": "https://github.com/SylphxAI/rosetta.git",
+		"directory": "packages/rosetta"
 	},
-	"homepage": "https://github.com/SylphxAI/lingua#readme",
+	"homepage": "https://github.com/SylphxAI/rosetta#readme",
 	"bugs": {
-		"url": "https://github.com/SylphxAI/lingua/issues"
+		"url": "https://github.com/SylphxAI/rosetta/issues"
 	},
 	"keywords": [
 		"i18n",

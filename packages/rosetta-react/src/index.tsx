@@ -1,6 +1,6 @@
 'use client';
 
-import { interpolate } from '@sylphx/lingua';
+import { interpolate } from '@sylphx/rosetta';
 import type React from 'react';
 import { type ReactNode, createContext, useContext } from 'react';
 
@@ -45,8 +45,8 @@ const I18nContext = createContext<TranslationContextValue>({
  *
  * @example
  * // In layout.tsx (server component)
- * import { I18nProvider } from '@sylphx/lingua-react';
- * import { getTranslationsForClient, getLocale } from '@sylphx/lingua/server';
+ * import { I18nProvider } from '@sylphx/rosetta-react';
+ * import { getTranslationsForClient, getLocale } from '@sylphx/rosetta/server';
  *
  * export default async function Layout({ children }) {
  *   return i18n.init(async () => (

@@ -1,24 +1,24 @@
 /**
- * @sylphx/lingua-drizzle - Drizzle ORM storage adapter for @sylphx/lingua
+ * @sylphx/rosetta-drizzle - Drizzle ORM storage adapter for @sylphx/rosetta
  *
  * @example
  * ```ts
  * // 1. Create schema in your Drizzle schema file
  * import { pgTable, text, timestamp, integer, boolean, unique, serial } from 'drizzle-orm/pg-core';
- * import { createLinguaSchema } from '@sylphx/lingua-drizzle/schema';
+ * import { createRosettaSchema } from '@sylphx/rosetta-drizzle/schema';
  *
- * export const { linguaSources, linguaTranslations } = createLinguaSchema({
+ * export const { rosettaSources, rosettaTranslations } = createRosettaSchema({
  *   pgTable, text, timestamp, integer, boolean, unique, serial
  * });
  *
  * // 2. Use the adapter in your i18n setup
- * import { DrizzleStorageAdapter } from '@sylphx/lingua-drizzle';
- * import { I18n } from '@sylphx/lingua/server';
+ * import { DrizzleStorageAdapter } from '@sylphx/rosetta-drizzle';
+ * import { I18n } from '@sylphx/rosetta/server';
  *
  * const storage = new DrizzleStorageAdapter({
  *   db,
- *   sources: linguaSources,
- *   translations: linguaTranslations,
+ *   sources: rosettaSources,
+ *   translations: rosettaTranslations,
  * });
  *
  * export const i18n = new I18n({

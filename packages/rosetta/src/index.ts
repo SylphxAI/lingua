@@ -1,10 +1,10 @@
 /**
- * @sylphx/lingua - Lightweight i18n with LLM-powered translation
+ * @sylphx/rosetta - Lightweight i18n with LLM-powered translation
  *
  * Main entry point exports browser-safe utilities only.
- * For server-side features, import from '@sylphx/lingua/server'
- * For React bindings, use '@sylphx/lingua-react'
- * For adapters, import from '@sylphx/lingua/adapters'
+ * For server-side features, import from '@sylphx/rosetta/server'
+ * For React bindings, use '@sylphx/rosetta-react'
+ * For adapters, import from '@sylphx/rosetta/adapters'
  */
 
 // Hash function (browser-safe)

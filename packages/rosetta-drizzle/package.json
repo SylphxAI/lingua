@@ -1,0 +1,48 @@
+{
+	"name": "@sylphx/rosetta-drizzle",
+	"version": "0.1.0",
+	"description": "Drizzle ORM storage adapter for @sylphx/rosetta",
+	"license": "MIT",
+	"type": "module",
+	"exports": {
+		".": {
+			"types": "./dist/index.d.ts",
+			"import": "./dist/index.js"
+		},
+		"./schema": {
+			"types": "./dist/schema.d.ts",
+			"import": "./dist/schema.js"
+		}
+	},
+	"files": ["dist"],
+	"scripts": {
+		"build": "bunup src/index.ts src/schema.ts --dts --external drizzle-orm --external @sylphx/rosetta",
+		"dev": "bunup src/index.ts src/schema.ts --dts --external drizzle-orm --external @sylphx/rosetta --watch",
+		"test": "bun test",
+		"typecheck": "tsc --noEmit",
+		"clean": "rm -rf dist"
+	},
+	"peerDependencies": {
+		"@sylphx/rosetta": ">=0.1.0",
+		"drizzle-orm": ">=0.30.0"
+	},
+	"devDependencies": {
+		"@types/bun": "^1.1.14",
+		"bunup": "^0.10.0",
+		"drizzle-orm": "^0.38.0",
+		"typescript": "^5"
+	},
+	"publishConfig": {
+		"access": "public"
+	},
+	"repository": {
+		"type": "git",
+		"url": "https://github.com/SylphxAI/rosetta.git",
+		"directory": "packages/rosetta-drizzle"
+	},
+	"homepage": "https://github.com/SylphxAI/rosetta#readme",
+	"bugs": {
+		"url": "https://github.com/SylphxAI/rosetta/issues"
+	},
+	"keywords": ["i18n", "drizzle", "drizzle-orm", "translation", "rosetta", "storage-adapter"]
+}

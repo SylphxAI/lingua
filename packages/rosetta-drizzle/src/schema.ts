@@ -1,16 +1,16 @@
 /**
  * Schema helpers for Drizzle ORM
  *
- * These helpers create the necessary tables for @sylphx/lingua.
+ * These helpers create the necessary tables for @sylphx/rosetta.
  * Import and use in your Drizzle schema file.
  *
  * @example PostgreSQL
  * ```ts
  * // schema.ts
  * import { pgTable, text, timestamp, integer, boolean, unique } from 'drizzle-orm/pg-core';
- * import { createLinguaSchema } from '@sylphx/lingua-drizzle/schema';
+ * import { createRosettaSchema } from '@sylphx/rosetta-drizzle/schema';
  *
- * export const { linguaSources, linguaTranslations } = createLinguaSchema({
+ * export const { rosettaSources, rosettaTranslations } = createRosettaSchema({
  *   pgTable,
  *   text,
  *   timestamp,
@@ -24,9 +24,9 @@
  * ```ts
  * // schema.ts
  * import { sqliteTable, text, integer } from 'drizzle-orm/sqlite-core';
- * import { createLinguaSchemaSQLite } from '@sylphx/lingua-drizzle/schema';
+ * import { createRosettaSchemaSQLite } from '@sylphx/rosetta-drizzle/schema';
  *
- * export const { linguaSources, linguaTranslations } = createLinguaSchemaSQLite({
+ * export const { rosettaSources, rosettaTranslations } = createRosettaSchemaSQLite({
  *   sqliteTable,
  *   text,
  *   integer,
@@ -48,13 +48,13 @@ export interface PostgresSchemaHelpers {
 	serial?: typeof import('drizzle-orm/pg-core').serial;
 }
 
-export interface LinguaSchemaOptions {
+export interface RosettaSchemaOptions {
 	/**
-	 * Custom table name for sources (default: 'lingua_sources')
+	 * Custom table name for sources (default: 'rosetta_sources')
 	 */
 	sourcesTable?: string;
 	/**
-	 * Custom table name for translations (default: 'lingua_translations')
+	 * Custom table name for translations (default: 'rosetta_translations')
 	 */
 	translationsTable?: string;
 }
@@ -62,15 +62,15 @@ export interface LinguaSchemaOptions {
 /**
  * Create Lingua schema for PostgreSQL
  */
-export function createLinguaSchema<T extends PostgresSchemaHelpers>(
+export function createRosettaSchema<T extends PostgresSchemaHelpers>(
 	helpers: T,
-	options: LinguaSchemaOptions = {}
+	options: RosettaSchemaOptions = {}
 ) {
 	const { pgTable, text, timestamp, integer, boolean, unique, serial } = helpers;
-	const sourcesTableName = options.sourcesTable ?? 'lingua_sources';
-	const translationsTableName = options.translationsTable ?? 'lingua_translations';
+	const sourcesTableName = options.sourcesTable ?? 'rosetta_sources';
+	const translationsTableName = options.translationsTable ?? 'rosetta_translations';
 
-	const linguaSources = pgTable(sourcesTableName, {
+	const rosettaSources = pgTable(sourcesTableName, {
 		id: serial ? serial('id').primaryKey() : integer('id').primaryKey().generatedAlwaysAsIdentity(),
 		hash: text('hash').notNull().unique(),
 		text: text('text').notNull(),
@@ -80,7 +80,7 @@ export function createLinguaSchema<T extends PostgresSchemaHelpers>(
 		lastSeenAt: timestamp('last_seen_at', { withTimezone: true }).defaultNow().notNull(),
 	});
 
-	const linguaTranslations = pgTable(
+	const rosettaTranslations = pgTable(
 		translationsTableName,
 		{
 			id: serial
@@ -97,7 +97,7 @@ export function createLinguaSchema<T extends PostgresSchemaHelpers>(
 		(table) => [unique().on(table.locale, table.hash)]
 	);
 
-	return { linguaSources, linguaTranslations };
+	return { rosettaSources, rosettaTranslations };
 }
 
 // ============================================
@@ -114,15 +114,15 @@ export interface SQLiteSchemaHelpers {
 /**
  * Create Lingua schema for SQLite
  */
-export function createLinguaSchemaSQLite<T extends SQLiteSchemaHelpers>(
+export function createRosettaSchemaSQLite<T extends SQLiteSchemaHelpers>(
 	helpers: T,
-	options: LinguaSchemaOptions = {}
+	options: RosettaSchemaOptions = {}
 ) {
 	const { sqliteTable, text, integer, unique } = helpers;
-	const sourcesTableName = options.sourcesTable ?? 'lingua_sources';
-	const translationsTableName = options.translationsTable ?? 'lingua_translations';
+	const sourcesTableName = options.sourcesTable ?? 'rosetta_sources';
+	const translationsTableName = options.translationsTable ?? 'rosetta_translations';
 
-	const linguaSources = sqliteTable(sourcesTableName, {
+	const rosettaSources = sqliteTable(sourcesTableName, {
 		id: integer('id').primaryKey({ autoIncrement: true }),
 		hash: text('hash').notNull().unique(),
 		text: text('text').notNull(),
@@ -136,7 +136,7 @@ export function createLinguaSchemaSQLite<T extends SQLiteSchemaHelpers>(
 			.notNull(),
 	});
 
-	const linguaTranslations = sqliteTable(
+	const rosettaTranslations = sqliteTable(
 		translationsTableName,
 		{
 			id: integer('id').primaryKey({ autoIncrement: true }),
@@ -155,7 +155,7 @@ export function createLinguaSchemaSQLite<T extends SQLiteSchemaHelpers>(
 		(table) => (unique ? [unique().on(table.locale, table.hash)] : [])
 	);
 
-	return { linguaSources, linguaTranslations };
+	return { rosettaSources, rosettaTranslations };
 }
 
 // ============================================
@@ -176,15 +176,15 @@ export interface MySQLSchemaHelpers {
 /**
  * Create Lingua schema for MySQL
  */
-export function createLinguaSchemaMySQL<T extends MySQLSchemaHelpers>(
+export function createRosettaSchemaMySQL<T extends MySQLSchemaHelpers>(
 	helpers: T,
-	options: LinguaSchemaOptions = {}
+	options: RosettaSchemaOptions = {}
 ) {
 	const { mysqlTable, text, varchar, timestamp, int, boolean, unique, serial } = helpers;
-	const sourcesTableName = options.sourcesTable ?? 'lingua_sources';
-	const translationsTableName = options.translationsTable ?? 'lingua_translations';
+	const sourcesTableName = options.sourcesTable ?? 'rosetta_sources';
+	const translationsTableName = options.translationsTable ?? 'rosetta_translations';
 
-	const linguaSources = mysqlTable(sourcesTableName, {
+	const rosettaSources = mysqlTable(sourcesTableName, {
 		id: serial ? serial('id').primaryKey() : int('id').primaryKey().autoincrement(),
 		hash: varchar('hash', { length: 32 }).notNull().unique(),
 		text: text('text').notNull(),
@@ -194,7 +194,7 @@ export function createLinguaSchemaMySQL<T extends MySQLSchemaHelpers>(
 		lastSeenAt: timestamp('last_seen_at').defaultNow().notNull(),
 	});
 
-	const linguaTranslations = mysqlTable(
+	const rosettaTranslations = mysqlTable(
 		translationsTableName,
 		{
 			id: serial ? serial('id').primaryKey() : int('id').primaryKey().autoincrement(),
@@ -209,7 +209,7 @@ export function createLinguaSchemaMySQL<T extends MySQLSchemaHelpers>(
 		(table) => (unique ? [unique().on(table.locale, table.hash)] : [])
 	);
 
-	return { linguaSources, linguaTranslations };
+	return { rosettaSources, rosettaTranslations };
 }
 
 // ============================================
@@ -219,9 +219,9 @@ export function createLinguaSchemaMySQL<T extends MySQLSchemaHelpers>(
 /**
  * Infer the type of a Lingua sources table
  */
-export type LinguaSourcesTable = ReturnType<typeof createLinguaSchema>['linguaSources'];
+export type RosettaSourcesTable = ReturnType<typeof createRosettaSchema>['rosettaSources'];
 
 /**
  * Infer the type of a Lingua translations table
  */
-export type LinguaTranslationsTable = ReturnType<typeof createLinguaSchema>['linguaTranslations'];
+export type RosettaTranslationsTable = ReturnType<typeof createRosettaSchema>['rosettaTranslations'];

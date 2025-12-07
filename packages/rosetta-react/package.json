@@ -1,0 +1,43 @@
+{
+	"name": "@sylphx/rosetta-react",
+	"version": "0.1.0",
+	"description": "React bindings for @sylphx/rosetta",
+	"license": "MIT",
+	"type": "module",
+	"exports": {
+		".": {
+			"types": "./dist/index.d.ts",
+			"import": "./dist/index.js"
+		}
+	},
+	"files": ["dist"],
+	"scripts": {
+		"build": "bunup src/index.tsx --dts --external react --external @sylphx/rosetta",
+		"dev": "bunup src/index.tsx --dts --external react --external @sylphx/rosetta --watch",
+		"typecheck": "tsc --noEmit",
+		"clean": "rm -rf dist"
+	},
+	"peerDependencies": {
+		"@sylphx/rosetta": ">=0.1.0",
+		"react": "^18.0.0 || ^19.0.0"
+	},
+	"devDependencies": {
+		"@types/react": "^19",
+		"bunup": "^0.10.0",
+		"react": "^19.0.0",
+		"typescript": "^5"
+	},
+	"publishConfig": {
+		"access": "public"
+	},
+	"repository": {
+		"type": "git",
+		"url": "https://github.com/SylphxAI/rosetta.git",
+		"directory": "packages/rosetta-react"
+	},
+	"homepage": "https://github.com/SylphxAI/rosetta#readme",
+	"bugs": {
+		"url": "https://github.com/SylphxAI/rosetta/issues"
+	},
+	"keywords": ["i18n", "react", "translation", "rosetta", "hooks", "provider"]
+}
