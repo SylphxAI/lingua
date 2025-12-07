@@ -294,7 +294,7 @@ describe('Rosetta admin methods', () => {
 		expect(result[1]?.translations['zh-TW']).toBeNull();
 	});
 
-	test('getStats() returns correct statistics', async () => {
+	test('getTranslationStats() returns correct statistics', async () => {
 		const storage = createMockStorage();
 		await storage.registerSources([
 			{ text: 'Hello', hash: 'hash1' },
@@ -309,7 +309,7 @@ describe('Rosetta admin methods', () => {
 			defaultLocale: 'en',
 		});
 
-		const stats = await rosetta.getStats(['zh-TW']);
+		const stats = await rosetta.getTranslationStats(['zh-TW']);
 
 		expect(stats.totalStrings).toBe(3);
 		expect(stats.locales['zh-TW']).toEqual({

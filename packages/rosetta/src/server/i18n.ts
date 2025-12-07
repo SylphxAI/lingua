@@ -26,6 +26,8 @@ export interface RosettaConfig {
 	defaultLocale?: string;
 	/** Cache TTL in milliseconds (default: 60000) */
 	cacheTTL?: number;
+	/** Maximum number of locales to cache (default: 50, prevents memory leak) */
+	maxCacheSize?: number;
 	/** Function to detect current locale */
 	localeDetector?: LocaleDetector;
 }
@@ -60,19 +62,43 @@ export class Rosetta {
 	private translator?: TranslateAdapter;
 	private defaultLocale: string;
 	private cacheTTL: number;
+	private maxCacheSize: number;
 	private localeDetector?: LocaleDetector;
 
-	// In-memory cache
+	// In-memory LRU cache with separate timestamps for coherence
 	private translationCache = new Map<string, LoadedTranslations>();
+	private translationCacheTime = new Map<string, number>();
+	private cacheAccessOrder: string[] = []; // LRU tracking
 	private availableLocalesCache: string[] | null = null;
-	private lastCacheTime = 0;
+	private localesCacheTime = 0;
 
 	constructor(config: RosettaConfig) {
 		this.storage = config.storage;
 		this.translator = config.translator;
 		this.defaultLocale = config.defaultLocale ?? DEFAULT_LOCALE;
 		this.cacheTTL = config.cacheTTL ?? 60 * 1000; // 1 minute
+		this.maxCacheSize = config.maxCacheSize ?? 50; // Max 50 locales cached
 		this.localeDetector = config.localeDetector;
+	}
+
+	/**
+	 * Update LRU access order for a locale
+	 */
+	private updateCacheAccess(locale: string): void {
+		const index = this.cacheAccessOrder.indexOf(locale);
+		if (index > -1) {
+			this.cacheAccessOrder.splice(index, 1);
+		}
+		this.cacheAccessOrder.push(locale);
+
+		// Evict oldest entries if over max size
+		while (this.cacheAccessOrder.length > this.maxCacheSize) {
+			const oldest = this.cacheAccessOrder.shift();
+			if (oldest) {
+				this.translationCache.delete(oldest);
+				this.translationCacheTime.delete(oldest);
+			}
+		}
 	}
 
 	/**
@@ -110,17 +136,18 @@ export class Rosetta {
 	async getAvailableLocales(): Promise<string[]> {
 		// Check cache
 		const now = Date.now();
-		if (this.availableLocalesCache && now - this.lastCacheTime < this.cacheTTL) {
+		if (this.availableLocalesCache && now - this.localesCacheTime < this.cacheTTL) {
 			return this.availableLocalesCache;
 		}
 
 		const locales = await this.storage.getAvailableLocales();
 		this.availableLocalesCache = locales;
+		this.localesCacheTime = now;
 		return locales;
 	}
 
 	/**
-	 * Load translations for a locale (with caching)
+	 * Load translations for a locale (with LRU caching)
 	 */
 	async loadTranslations(locale: string): Promise<LoadedTranslations> {
 		// Default locale doesn't need translations
@@ -128,36 +155,41 @@ export class Rosetta {
 			return { byHash: new Map(), bySource: {} };
 		}
 
-		// Check cache
+		// Check cache with per-locale timestamp
 		const now = Date.now();
 		const cached = this.translationCache.get(locale);
-		if (cached && now - this.lastCacheTime < this.cacheTTL) {
+		const cacheTime = this.translationCacheTime.get(locale) ?? 0;
+		if (cached && now - cacheTime < this.cacheTTL) {
+			this.updateCacheAccess(locale); // Update LRU on cache hit
 			return cached;
 		}
 
 		// Load from storage
-		const translationMap = await this.storage.getTranslations(locale);
+		const byHash = await this.storage.getTranslations(locale);
+		let bySource: Record<string, string>;
 
-		// We need source text for client-side lookup
-		// The storage adapter returns hash -> translated
-		// We also need source -> translated for client
-		const byHash = translationMap;
-		const bySource: Record<string, string> = {};
-
-		// Get all sources to build bySource map
-		const sources = await this.storage.getSources();
-		for (const source of sources) {
-			const translated = translationMap.get(source.hash);
-			if (translated) {
-				bySource[source.text] = translated;
+		// Use optimized single-query method if available (avoids N+1)
+		if (this.storage.getTranslationsWithSourceText) {
+			const sourceMap = await this.storage.getTranslationsWithSourceText(locale);
+			bySource = Object.fromEntries(sourceMap);
+		} else {
+			// Fallback: build bySource map from sources (N+1 query)
+			bySource = {};
+			const sources = await this.storage.getSources();
+			for (const source of sources) {
+				const translated = byHash.get(source.hash);
+				if (translated) {
+					bySource[source.text] = translated;
+				}
 			}
 		}
 
 		const result: LoadedTranslations = { byHash, bySource };
 
-		// Update cache
+		// Update LRU cache with per-locale timestamp
 		this.translationCache.set(locale, result);
-		this.lastCacheTime = now;
+		this.translationCacheTime.set(locale, now);
+		this.updateCacheAccess(locale); // Update LRU on cache miss (new entry)
 
 		return result;
 	}
@@ -214,8 +246,10 @@ export class Rosetta {
 	 */
 	invalidateCache(): void {
 		this.translationCache.clear();
+		this.translationCacheTime.clear();
+		this.cacheAccessOrder = [];
 		this.availableLocalesCache = null;
-		this.lastCacheTime = 0;
+		this.localesCacheTime = 0;
 	}
 
 	// ============================================
@@ -320,6 +354,7 @@ export class Rosetta {
 
 	/**
 	 * Save a manual translation
+	 * @throws Error if locale or text is empty
 	 */
 	async saveTranslation(
 		locale: string,
@@ -327,6 +362,17 @@ export class Rosetta {
 		translation: string,
 		context?: string
 	): Promise<void> {
+		// Validate inputs
+		if (!locale || typeof locale !== 'string' || !locale.trim()) {
+			throw new Error('Locale is required and must be a non-empty string');
+		}
+		if (!text || typeof text !== 'string') {
+			throw new Error('Source text is required and must be a string');
+		}
+		if (typeof translation !== 'string') {
+			throw new Error('Translation must be a string');
+		}
+
 		const hash = hashText(text, context);
 		await this.storage.saveTranslation(locale, hash, translation, {
 			sourceText: text,
@@ -338,6 +384,7 @@ export class Rosetta {
 
 	/**
 	 * Save translation by hash (for admin operations)
+	 * @throws Error if locale or hash is empty
 	 */
 	async saveTranslationByHash(
 		locale: string,
@@ -345,6 +392,17 @@ export class Rosetta {
 		translation: string,
 		options?: { sourceText?: string; autoGenerated?: boolean }
 	): Promise<void> {
+		// Validate inputs
+		if (!locale || typeof locale !== 'string' || !locale.trim()) {
+			throw new Error('Locale is required and must be a non-empty string');
+		}
+		if (!hash || typeof hash !== 'string' || !hash.trim()) {
+			throw new Error('Hash is required and must be a non-empty string');
+		}
+		if (typeof translation !== 'string') {
+			throw new Error('Translation must be a string');
+		}
+
 		await this.storage.saveTranslation(locale, hash, translation, {
 			sourceText: options?.sourceText,
 			autoGenerated: options?.autoGenerated ?? false,
@@ -357,14 +415,30 @@ export class Rosetta {
 	// ============================================
 
 	/**
+	 * Pagination options for admin methods
+	 */
+	private applyPagination<T>(items: T[], options?: { limit?: number; offset?: number }): T[] {
+		if (!options) return items;
+		const { limit, offset = 0 } = options;
+		const start = Math.max(0, offset);
+		if (limit === undefined) return items.slice(start);
+		return items.slice(start, start + limit);
+	}
+
+	/**
 	 * Get all source strings with translation status for specified locales
 	 * Used by admin dashboard
 	 * @param locales - Locales to check translation status for
+	 * @param options - Pagination options (limit, offset)
 	 */
-	async getSourcesWithStatus(locales: string[]): Promise<SourceWithStatus[]> {
+	async getSourcesWithStatus(
+		locales: string[],
+		options?: { limit?: number; offset?: number }
+	): Promise<SourceWithStatus[]> {
 		// If storage adapter has optimized method, use it
 		if (this.storage.getSourcesWithTranslations) {
-			return this.storage.getSourcesWithTranslations(locales);
+			const results = await this.storage.getSourcesWithTranslations(locales);
+			return this.applyPagination(results, options);
 		}
 
 		// Otherwise, build it manually (less efficient)
@@ -378,7 +452,7 @@ export class Rosetta {
 		}
 
 		// Build result
-		return sources.map((source) => {
+		const results = sources.map((source) => {
 			const translations: Record<
 				string,
 				{ text: string | null; autoGenerated: boolean; reviewed: boolean } | null
@@ -409,13 +483,15 @@ export class Rosetta {
 				translations,
 			};
 		});
+
+		return this.applyPagination(results, options);
 	}
 
 	/**
 	 * Get translation statistics for specified locales
 	 * @param locales - Locales to get stats for
 	 */
-	async getStats(locales: string[]): Promise<TranslationStats> {
+	async getTranslationStats(locales: string[]): Promise<TranslationStats> {
 		// If we have getSourcesWithStatus, use it for accurate stats
 		if (this.storage.getSourcesWithTranslations) {
 			const sourcesWithStatus = await this.getSourcesWithStatus(locales);
@@ -508,8 +584,8 @@ export class Rosetta {
 								autoGenerated: true,
 							});
 							success++;
-						} catch {
-							// Continue on individual save errors
+						} catch (error) {
+							console.error(`[rosetta] Failed to save translation for hash ${item.hash}:`, error);
 						}
 					}
 				}
@@ -522,13 +598,15 @@ export class Rosetta {
 			}
 		}
 
-		// Sequential fallback
+		// Parallel fallback using Promise.allSettled for better performance
+		const results = await Promise.allSettled(
+			items.map((item) => this.generateAndSave(item.text, locale, item.context))
+		);
+
 		let success = 0;
 		let failed = 0;
-
-		for (const item of items) {
-			const translation = await this.generateAndSave(item.text, locale, item.context);
-			if (translation) {
+		for (const result of results) {
+			if (result.status === 'fulfilled' && result.value) {
 				success++;
 			} else {
 				failed++;
@@ -576,8 +654,8 @@ export class Rosetta {
 					autoGenerated: options?.autoGenerated ?? false,
 				});
 				imported++;
-			} catch {
-				// Continue on individual errors
+			} catch (error) {
+				console.error(`[rosetta] Failed to import translation for "${sourceText}":`, error);
 			}
 		}
 

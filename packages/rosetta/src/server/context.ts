@@ -19,32 +19,43 @@ export function getRosettaContext(): RosettaContext | undefined {
 
 /**
  * Run a function with Rosetta context
+ * Initializes request-scoped string collection state
  */
-export function runWithRosetta<T>(context: RosettaContext, fn: () => T): T {
-	return rosettaStorage.run(context, fn);
+export function runWithRosetta<T>(context: Omit<RosettaContext, 'collectedHashes' | 'pendingStrings'>, fn: () => T): T {
+	// Warn about nested contexts in development
+	const existingContext = rosettaStorage.getStore();
+	if (existingContext && process.env.NODE_ENV === 'development') {
+		console.warn(
+			'[rosetta] Nested runWithRosetta detected. This may cause unexpected behavior. ' +
+				'Ensure Rosetta.init() is only called once per request (usually in root layout).'
+		);
+	}
+
+	// Create full context with request-scoped collection state
+	const fullContext: RosettaContext = {
+		...context,
+		collectedHashes: new Set<string>(),
+		pendingStrings: [],
+	};
+	return rosettaStorage.run(fullContext, fn);
 }
 
 // ============================================
-// String Collection (Production-safe)
+// String Collection (Request-scoped, Production-safe)
 // ============================================
-
-// Track collected hashes per request to avoid duplicates
-const collectedThisRequest = new Set<string>();
-
-// Pending strings to flush (batched at end of request)
-const pendingStrings: Array<{
-	text: string;
-	hash: string;
-	context?: string;
-}> = [];
 
 /**
  * Queue a string for collection (sync, non-blocking)
+ * Uses request-scoped state to prevent race conditions
  */
 function queueForCollection(text: string, hash: string, context?: string): void {
-	if (collectedThisRequest.has(hash)) return;
-	collectedThisRequest.add(hash);
-	pendingStrings.push({ text, hash, context });
+	const ctx = getRosettaContext();
+	if (!ctx) return;
+
+	// Check request-scoped deduplication set
+	if (ctx.collectedHashes.has(hash)) return;
+	ctx.collectedHashes.add(hash);
+	ctx.pendingStrings.push({ text, hash, context });
 }
 
 /**
@@ -52,14 +63,13 @@ function queueForCollection(text: string, hash: string, context?: string): void 
  * This is async and non-blocking
  */
 export async function flushCollectedStrings(): Promise<void> {
-	if (pendingStrings.length === 0) return;
-
 	const ctx = getRosettaContext();
-	if (!ctx?.storage) return;
+	if (!ctx?.storage || ctx.pendingStrings.length === 0) return;
 
-	const items = [...pendingStrings];
-	pendingStrings.length = 0;
-	collectedThisRequest.clear();
+	// Copy and clear in one operation to avoid race conditions
+	const items = [...ctx.pendingStrings];
+	ctx.pendingStrings.length = 0;
+	ctx.collectedHashes.clear();
 
 	try {
 		await ctx.storage.registerSources(items);
@@ -79,14 +89,17 @@ export async function flushCollectedStrings(): Promise<void> {
  * // Simple translation
  * t("Hello World")
  *
- * // With interpolation
+ * // With interpolation (direct params - legacy API)
  * t("Hello {name}", { name: "John" })
  *
  * // With context for disambiguation
  * t("Submit", { context: "form" })
  *
+ * // With both context and params (recommended for clarity)
+ * t("Hello {name}", { context: "greeting", params: { name: "John" } })
+ *
  * @param text - Source text to translate
- * @param paramsOrOptions - Either interpolation params or TranslateOptions
+ * @param paramsOrOptions - Interpolation params OR TranslateOptions with context/params
  */
 export function t(
 	text: string,
@@ -94,12 +107,25 @@ export function t(
 ): string {
 	const store = rosettaStorage.getStore();
 
-	// Determine if paramsOrOptions is TranslateOptions or interpolation params
-	const isTranslateOptions = paramsOrOptions && 'context' in paramsOrOptions;
-	const context = isTranslateOptions ? (paramsOrOptions as TranslateOptions).context : undefined;
-	const params = isTranslateOptions
-		? undefined
-		: (paramsOrOptions as Record<string, string | number> | undefined);
+	// Determine if paramsOrOptions is TranslateOptions or direct interpolation params
+	// TranslateOptions has 'context' or 'params' keys
+	const isTranslateOptions =
+		paramsOrOptions &&
+		('context' in paramsOrOptions || 'params' in paramsOrOptions) &&
+		// Heuristic: if it only has context/params keys, it's TranslateOptions
+		// otherwise treat as interpolation params (allows { context: "form" } vs { name: "John" })
+		Object.keys(paramsOrOptions).every((k) => k === 'context' || k === 'params');
+
+	let context: string | undefined;
+	let params: Record<string, string | number> | undefined;
+
+	if (isTranslateOptions) {
+		const opts = paramsOrOptions as TranslateOptions;
+		context = opts.context;
+		params = opts.params;
+	} else {
+		params = paramsOrOptions as Record<string, string | number> | undefined;
+	}
 
 	const hash = hashText(text, context);
 

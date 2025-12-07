@@ -107,6 +107,13 @@ export interface StorageAdapter {
 	getTranslations(locale: string): Promise<Map<string, string>>;
 
 	/**
+	 * Get translations with source text for a locale (optimized single query)
+	 * Used for client-side hydration to avoid N+1 query
+	 * @returns Map of source text -> translated text
+	 */
+	getTranslationsWithSourceText?(locale: string): Promise<Map<string, string>>;
+
+	/**
 	 * Register source strings (batch insert, skip duplicates)
 	 */
 	registerSources(
@@ -217,6 +224,15 @@ export interface TranslateAdapter {
 // ============================================
 
 /**
+ * Pending source string to be registered
+ */
+export interface PendingSourceString {
+	text: string;
+	hash: string;
+	context?: string;
+}
+
+/**
  * Rosetta context stored in AsyncLocalStorage
  */
 export interface RosettaContext {
@@ -228,12 +244,18 @@ export interface RosettaContext {
 	translationsForClient: Record<string, string>;
 	/** Storage adapter for flushing collected strings */
 	storage?: StorageAdapter;
+	/** Request-scoped: hashes collected this request (prevents duplicates) */
+	collectedHashes: Set<string>;
+	/** Request-scoped: pending strings to flush at end of request */
+	pendingStrings: PendingSourceString[];
 }
 
 /**
- * Translation options
+ * Translation options with explicit params
  */
 export interface TranslateOptions {
 	/** Context for disambiguation (e.g., "button", "menu") */
 	context?: string;
+	/** Interpolation params for variables like {name} */
+	params?: Record<string, string | number>;
 }
