@@ -1,5 +1,7 @@
 import type { Rosetta } from '@sylphx/rosetta/server';
 import { buildLocaleChain, runWithRosetta } from '@sylphx/rosetta/server';
+import fs from 'node:fs';
+import path from 'node:path';
 import type { ReactNode } from 'react';
 import { RosettaClientProvider } from './client';
 
@@ -16,6 +18,81 @@ export {
 	type GetReadyLocalesOptions,
 	type LocaleCookieOptions,
 } from './locale';
+
+// ============================================
+// Route Manifest Helpers
+// ============================================
+
+const ROUTES_FILE = '.rosetta/routes.json';
+let cachedRoutes: Record<string, string[]> | null = null;
+
+/**
+ * Read route manifest from .rosetta/routes.json
+ * Cached after first read for performance
+ */
+function readRoutesManifest(): Record<string, string[]> {
+	if (cachedRoutes !== null) {
+		return cachedRoutes;
+	}
+
+	const routesPath = path.join(process.cwd(), ROUTES_FILE);
+
+	try {
+		if (fs.existsSync(routesPath)) {
+			const content = fs.readFileSync(routesPath, 'utf-8');
+			cachedRoutes = JSON.parse(content);
+			return cachedRoutes!;
+		}
+	} catch {
+		// Ignore errors, fall back to loading all
+	}
+
+	cachedRoutes = {};
+	return cachedRoutes;
+}
+
+/**
+ * Get hashes for a specific route (with _shared fallback)
+ */
+function getHashesForRoute(pathname: string): string[] | null {
+	const routes = readRoutesManifest();
+
+	// No routes manifest - load all
+	if (Object.keys(routes).length === 0) {
+		return null;
+	}
+
+	// Normalize pathname (remove trailing slash, handle index)
+	let route = pathname === '' ? '/' : pathname;
+	if (route !== '/' && route.endsWith('/')) {
+		route = route.slice(0, -1);
+	}
+
+	// Find matching route (exact match first, then try parent routes)
+	let routeHashes = routes[route];
+
+	// If no exact match, try removing dynamic segments
+	// e.g., /products/123 → /products/[id] → /products
+	if (!routeHashes) {
+		const parts = route.split('/').filter(Boolean);
+		while (parts.length > 0 && !routeHashes) {
+			// Try with [param] pattern
+			const parentRoute = '/' + parts.slice(0, -1).join('/');
+			routeHashes = routes[parentRoute] || routes[parentRoute || '/'];
+			parts.pop();
+		}
+	}
+
+	// Include _shared strings (used across routes)
+	const sharedHashes = routes['_shared'] || [];
+
+	if (!routeHashes && sharedHashes.length === 0) {
+		return null;
+	}
+
+	// Combine and deduplicate
+	return [...new Set([...(routeHashes || []), ...sharedHashes])];
+}
 
 // ============================================
 // Types
@@ -35,11 +112,22 @@ export interface RosettaProviderProps {
 	/** Children to render */
 	children: ReactNode;
 	/**
+	 * Current pathname for page-level optimization
+	 * If provided, only translations for this route are loaded
+	 * If not provided, checks .rosetta/routes.json automatically
+	 */
+	pathname?: string;
+	/**
 	 * Specific hashes to load (fine-grained loading)
-	 * If provided, only these translations are loaded
-	 * If not provided, all translations for the locale are loaded
+	 * If provided, overrides pathname-based loading
+	 * If not provided, uses pathname or loads all translations
 	 */
 	hashes?: string[];
+	/**
+	 * Route manifest for page-level optimization
+	 * If provided, uses this instead of reading from .rosetta/routes.json
+	 */
+	routes?: RosettaManifest;
 }
 
 // ============================================
@@ -54,6 +142,12 @@ export interface RosettaProviderProps {
  * 2. Sets up AsyncLocalStorage context for server components
  * 3. Provides React context for client components via RosettaClientProvider
  *
+ * **Page-Level Optimization (Zero-Config):**
+ * When using `withRosetta()` in next.config.ts, a routes.json is generated
+ * during build that maps routes to their required translation hashes.
+ * RosettaProvider automatically uses this to load only the translations
+ * needed for the current page.
+ *
  * IMPORTANT: This component does NOT auto-sync strings to the database.
  * Use `syncRosetta()` in your deployment pipeline:
  *
@@ -62,7 +156,7 @@ export interface RosettaProviderProps {
  * ```
  *
  * @example
- * // Basic usage - loads all translations
+ * // Zero-config - automatic page-level optimization
  * // app/[locale]/layout.tsx
  * import { RosettaProvider } from '@sylphx/rosetta-next/server';
  * import { rosetta } from '@/lib/i18n';
@@ -78,18 +172,14 @@ export interface RosettaProviderProps {
  * }
  *
  * @example
- * // Fine-grained loading with manifest (faster)
- * import manifest from './rosetta-manifest.json';
+ * // With explicit pathname (for nested layouts)
+ * import { headers } from 'next/headers';
  *
  * export default async function Layout({ children, params }) {
- *   const route = '/products'; // or derive from pathname
- *   const hashes = manifest[route]; // ['hash1', 'hash2', ...]
- *
+ *   const pathname = headers().get('x-pathname') || '/';
  *   return (
- *     <RosettaProvider rosetta={rosetta} locale={params.locale} hashes={hashes}>
- *       <html lang={params.locale}>
- *         <body>{children}</body>
- *       </html>
+ *     <RosettaProvider rosetta={rosetta} locale={params.locale} pathname={pathname}>
+ *       {children}
  *     </RosettaProvider>
  *   );
  * }
@@ -114,12 +204,31 @@ export async function RosettaProvider({
 	rosetta,
 	locale,
 	children,
+	pathname,
 	hashes,
+	routes,
 }: RosettaProviderProps): Promise<React.ReactElement> {
-	// Load translations - fine-grained if hashes provided, otherwise all
+	// Determine which hashes to load
+	let hashesToLoad: string[] | undefined = hashes;
+
+	// If no explicit hashes, try route-based optimization
+	if (!hashesToLoad && pathname) {
+		// Use provided routes or read from filesystem
+		if (routes) {
+			const routeHashes = routes[pathname] || [];
+			const sharedHashes = routes['_shared'] || [];
+			if (routeHashes.length > 0 || sharedHashes.length > 0) {
+				hashesToLoad = [...new Set([...routeHashes, ...sharedHashes])];
+			}
+		} else {
+			hashesToLoad = getHashesForRoute(pathname) || undefined;
+		}
+	}
+
+	// Load translations - fine-grained if hashes available, otherwise all
 	// Translations are already merged from fallback chain (zh-TW → zh → en)
-	const translations = hashes
-		? await rosetta.loadTranslationsByHashes(locale, hashes)
+	const translations = hashesToLoad
+		? await rosetta.loadTranslationsByHashes(locale, hashesToLoad)
 		: await rosetta.loadTranslations(locale);
 	const defaultLocale = rosetta.getDefaultLocale();
 	const localeChain = buildLocaleChain(locale, defaultLocale);

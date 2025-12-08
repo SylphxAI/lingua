@@ -57,6 +57,15 @@ interface ManifestEntry {
 	text: string;
 	hash: string;
 	context?: string;
+	/** Source files that use this string (for route-based loading) */
+	files?: string[];
+}
+
+interface RouteManifest {
+	/** All extracted strings */
+	strings: ManifestEntry[];
+	/** Route to hash mapping for page-level loading */
+	routes: Record<string, string[]>;
 }
 
 // ============================================
@@ -65,9 +74,115 @@ interface ManifestEntry {
 
 // Shared state across loader invocations within the same build
 const collectedStrings = new Map<string, ManifestEntry>();
+/** Track which files use each hash (for route-based loading) */
+const hashToFiles = new Map<string, Set<string>>();
 let writeTimer: ReturnType<typeof setTimeout> | null = null;
 const WRITE_DEBOUNCE_MS = 100;
 const MAX_COLLECTED_STRINGS = 100000; // Memory safety limit
+
+// ============================================
+// Route Detection (Next.js App Router)
+// ============================================
+
+/**
+ * Convert a file path to a Next.js route
+ * Supports App Router conventions:
+ * - app/page.tsx → /
+ * - app/about/page.tsx → /about
+ * - app/products/[id]/page.tsx → /products/[id]
+ * - app/(marketing)/about/page.tsx → /about (groups removed)
+ * - app/[locale]/products/page.tsx → /products (locale param removed)
+ *
+ * Returns null for non-route files (components, utils, etc.)
+ */
+function filePathToRoute(filePath: string): string | null {
+	// Normalize path separators
+	const normalized = filePath.replace(/\\/g, '/');
+
+	// Find app directory (App Router)
+	const appMatch = normalized.match(/\/app\/(.+)$/);
+	if (!appMatch) {
+		// Not in app directory - might be a shared component
+		// Try to detect page files in other locations
+		return null;
+	}
+
+	const relativePath = appMatch[1];
+
+	// Only process route files (page, layout, template, loading, error, not-found)
+	const routeFiles = ['page', 'layout', 'template', 'loading', 'error', 'not-found', 'default'];
+	const isRouteFile = routeFiles.some(
+		(rf) => relativePath.endsWith(`${rf}.tsx`) || relativePath.endsWith(`${rf}.ts`)
+	);
+
+	if (!isRouteFile) {
+		// Not a route file - it's a component/util that might be shared
+		// We still want to track it, but associate with where it's imported
+		return null;
+	}
+
+	// Extract route path
+	let route = '/' + relativePath;
+
+	// Remove file extension and route file name
+	route = route.replace(/\/(page|layout|template|loading|error|not-found|default)\.(tsx?|jsx?)$/, '');
+
+	// Remove route groups: (marketing) → ''
+	route = route.replace(/\/\([^)]+\)/g, '');
+
+	// Remove common locale param patterns: [locale], [lang]
+	route = route.replace(/\/\[(locale|lang)\]/g, '');
+
+	// Normalize root
+	if (route === '' || route === '/') {
+		return '/';
+	}
+
+	// Clean up double slashes
+	route = route.replace(/\/+/g, '/');
+
+	// Remove trailing slash
+	route = route.replace(/\/$/, '');
+
+	return route || '/';
+}
+
+/**
+ * Get all routes that might use a shared component
+ * For non-route files, we associate them with the parent route
+ */
+function getAssociatedRoutes(filePath: string): string[] {
+	const route = filePathToRoute(filePath);
+	if (route) {
+		return [route];
+	}
+
+	// For shared components, try to find the nearest route
+	const normalized = filePath.replace(/\\/g, '/');
+	const appMatch = normalized.match(/\/app\/(.+)$/);
+
+	if (!appMatch) {
+		// Outside app directory - could be used anywhere
+		// Return special marker for "global" strings
+		return ['_shared'];
+	}
+
+	// Find parent directory that could be a route
+	const parts = appMatch[1].split('/');
+	parts.pop(); // Remove filename
+
+	// Walk up to find route
+	while (parts.length > 0) {
+		const testPath = '/app/' + parts.join('/') + '/page.tsx';
+		const route = filePathToRoute(testPath);
+		if (route) {
+			return [route];
+		}
+		parts.pop();
+	}
+
+	return ['_shared'];
+}
 
 // ============================================
 // Regex Extraction (ReDoS-safe)
@@ -159,15 +274,54 @@ function extractStrings(source: string): ManifestEntry[] {
 // Atomic Manifest Write
 // ============================================
 
+const ROUTES_FILE = 'routes.json';
+
+function getRoutesPath(): string {
+	return path.join(getManifestDir(), ROUTES_FILE);
+}
+
+/**
+ * Build route mappings from collected file associations
+ */
+function buildRouteMappings(): Record<string, string[]> {
+	const routes: Record<string, Set<string>> = {};
+
+	for (const [hash, files] of hashToFiles) {
+		for (const filePath of files) {
+			const associatedRoutes = getAssociatedRoutes(filePath);
+			for (const route of associatedRoutes) {
+				if (!routes[route]) {
+					routes[route] = new Set();
+				}
+				routes[route].add(hash);
+			}
+		}
+	}
+
+	// Convert Sets to sorted arrays for deterministic output
+	const result: Record<string, string[]> = {};
+	for (const [route, hashes] of Object.entries(routes)) {
+		result[route] = Array.from(hashes).sort();
+	}
+
+	return result;
+}
+
 /**
  * Write manifest atomically (temp file + rename)
  * Also detects hash collisions and sorts output for deterministic diffs
+ *
+ * Writes two files:
+ * - manifest.json: Array of strings for sync to database
+ * - routes.json: Route to hash mapping for page-level loading
  */
 function writeManifestAtomic(): void {
 	try {
 		const manifestDir = getManifestDir();
 		const manifestPath = getManifestPath();
+		const routesPath = getRoutesPath();
 		const tempPath = `${manifestPath}.tmp`;
+		const routesTempPath = `${routesPath}.tmp`;
 
 		// Ensure directory exists
 		if (!fs.existsSync(manifestDir)) {
@@ -183,6 +337,17 @@ function writeManifestAtomic(): void {
 				if (Array.isArray(parsed)) {
 					existing = parsed;
 				}
+			} catch {
+				// Ignore parse errors, start fresh
+			}
+		}
+
+		// Read existing routes to merge
+		let existingRoutes: Record<string, string[]> = {};
+		if (fs.existsSync(routesPath)) {
+			try {
+				const content = fs.readFileSync(routesPath, 'utf-8');
+				existingRoutes = JSON.parse(content);
 			} catch {
 				// Ignore parse errors, start fresh
 			}
@@ -223,14 +388,41 @@ function writeManifestAtomic(): void {
 		// Sort by hash for deterministic output
 		const data = Array.from(merged.values()).sort((a, b) => a.hash.localeCompare(b.hash));
 
-		// Write to temp file first
-		fs.writeFileSync(tempPath, JSON.stringify(data, null, 2));
+		// Build route mappings
+		const newRoutes = buildRouteMappings();
 
-		// Atomic rename (POSIX guarantees atomicity for rename)
+		// Merge routes (new routes override existing for same route)
+		const mergedRoutes: Record<string, Set<string>> = {};
+		for (const [route, hashes] of Object.entries(existingRoutes)) {
+			mergedRoutes[route] = new Set(hashes);
+		}
+		for (const [route, hashes] of Object.entries(newRoutes)) {
+			if (!mergedRoutes[route]) {
+				mergedRoutes[route] = new Set();
+			}
+			for (const hash of hashes) {
+				mergedRoutes[route].add(hash);
+			}
+		}
+
+		// Convert to final format (sorted for determinism)
+		const finalRoutes: Record<string, string[]> = {};
+		const sortedRouteKeys = Object.keys(mergedRoutes).sort();
+		for (const route of sortedRouteKeys) {
+			finalRoutes[route] = Array.from(mergedRoutes[route]).sort();
+		}
+
+		// Write manifest.json (temp file + atomic rename)
+		fs.writeFileSync(tempPath, JSON.stringify(data, null, 2));
 		fs.renameSync(tempPath, manifestPath);
 
-		// Clear collected strings after successful write
+		// Write routes.json (temp file + atomic rename)
+		fs.writeFileSync(routesTempPath, JSON.stringify(finalRoutes, null, 2));
+		fs.renameSync(routesTempPath, routesPath);
+
+		// Clear collected state after successful write
 		collectedStrings.clear();
+		hashToFiles.clear();
 	} catch (error) {
 		console.error('[rosetta] Failed to write manifest:', error);
 		// Don't throw - build should continue even if manifest write fails
@@ -259,14 +451,37 @@ function scheduleManifestWrite(): void {
 // ============================================
 
 /**
- * Rosetta loader - extracts t() calls and writes to manifest
+ * Webpack/Turbopack loader context type
  */
-export default function rosettaLoader(source: string): string {
+interface LoaderContext {
+	resourcePath: string;
+}
+
+/**
+ * Rosetta loader - extracts t() calls and writes to manifest
+ *
+ * Tracks source file for each string to enable page-level optimization.
+ * The manifest includes route mappings for automatic per-page loading.
+ */
+export default function rosettaLoader(this: LoaderContext | void, source: string): string {
+	// Get the file path from loader context (webpack/turbopack provide this)
+	const resourcePath = (this as LoaderContext)?.resourcePath || '';
+
 	const strings = extractStrings(source);
 
-	// Add to collected strings
+	// Add to collected strings and track file associations
 	for (const item of strings) {
 		collectedStrings.set(item.hash, item);
+
+		// Track which files use this string
+		if (resourcePath) {
+			let files = hashToFiles.get(item.hash);
+			if (!files) {
+				files = new Set();
+				hashToFiles.set(item.hash, files);
+			}
+			files.add(resourcePath);
+		}
 	}
 
 	// Memory safety: flush if too many strings accumulated
@@ -291,7 +506,12 @@ export default function rosettaLoader(source: string): string {
 /**
  * Get the manifest path (for external tools)
  */
-export { getManifestPath };
+export { getManifestPath, getRoutesPath };
+
+/**
+ * Route manifest type for page-level loading
+ */
+export type { RouteManifest };
 
 /**
  * Read strings from manifest
@@ -313,13 +533,49 @@ export function readManifest(): ManifestEntry[] {
 }
 
 /**
+ * Read route mappings from routes.json
+ * Returns mapping of route path to array of translation hashes
+ */
+export function readRoutes(): Record<string, string[]> {
+	const routesPath = getRoutesPath();
+
+	if (!fs.existsSync(routesPath)) {
+		return {};
+	}
+
+	try {
+		const content = fs.readFileSync(routesPath, 'utf-8');
+		return JSON.parse(content);
+	} catch {
+		return {};
+	}
+}
+
+/**
+ * Get hashes for a specific route (with _shared fallback)
+ * Includes _shared strings that are used across multiple routes
+ */
+export function getHashesForRoute(route: string): string[] {
+	const routes = readRoutes();
+	const routeHashes = routes[route] || [];
+	const sharedHashes = routes['_shared'] || [];
+
+	// Combine and deduplicate
+	return [...new Set([...routeHashes, ...sharedHashes])];
+}
+
+/**
  * Clear the manifest (use with caution)
  */
 export function clearManifest(): void {
 	const manifestPath = getManifestPath();
+	const routesPath = getRoutesPath();
 
 	if (fs.existsSync(manifestPath)) {
 		fs.unlinkSync(manifestPath);
+	}
+	if (fs.existsSync(routesPath)) {
+		fs.unlinkSync(routesPath);
 	}
 }
 
@@ -332,7 +588,7 @@ export function flushManifest(): void {
 		clearTimeout(writeTimer);
 		writeTimer = null;
 	}
-	if (collectedStrings.size > 0) {
+	if (collectedStrings.size > 0 || hashToFiles.size > 0) {
 		writeManifestAtomic();
 	}
 }
@@ -342,8 +598,12 @@ export function flushManifest(): void {
  */
 export function resetLoaderState(): void {
 	collectedStrings.clear();
+	hashToFiles.clear();
 	if (writeTimer) {
 		clearTimeout(writeTimer);
 		writeTimer = null;
 	}
 }
+
+// Export route detection for testing
+export { filePathToRoute, getAssociatedRoutes };

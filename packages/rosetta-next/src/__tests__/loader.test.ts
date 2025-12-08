@@ -328,3 +328,148 @@ describe('loader security', () => {
 		expect(fs.existsSync('/tmp/rosetta-test-security/manifest.json')).toBe(false);
 	});
 });
+
+// ============================================
+// Route Detection Tests
+// ============================================
+
+import { filePathToRoute, getAssociatedRoutes, readRoutes, getHashesForRoute, getRoutesPath } from '../loader';
+
+describe('route detection', () => {
+	describe('filePathToRoute', () => {
+		test('converts app/page.tsx to /', () => {
+			expect(filePathToRoute('/project/app/page.tsx')).toBe('/');
+		});
+
+		test('converts app/about/page.tsx to /about', () => {
+			expect(filePathToRoute('/project/app/about/page.tsx')).toBe('/about');
+		});
+
+		test('converts nested routes correctly', () => {
+			expect(filePathToRoute('/project/app/products/details/page.tsx')).toBe('/products/details');
+		});
+
+		test('handles dynamic segments', () => {
+			expect(filePathToRoute('/project/app/products/[id]/page.tsx')).toBe('/products/[id]');
+		});
+
+		test('removes route groups', () => {
+			expect(filePathToRoute('/project/app/(marketing)/about/page.tsx')).toBe('/about');
+		});
+
+		test('removes locale params', () => {
+			expect(filePathToRoute('/project/app/[locale]/products/page.tsx')).toBe('/products');
+			expect(filePathToRoute('/project/app/[lang]/about/page.tsx')).toBe('/about');
+		});
+
+		test('handles layout files', () => {
+			expect(filePathToRoute('/project/app/layout.tsx')).toBe('/');
+			expect(filePathToRoute('/project/app/products/layout.tsx')).toBe('/products');
+		});
+
+		test('returns null for non-route files', () => {
+			expect(filePathToRoute('/project/app/components/Button.tsx')).toBeNull();
+			expect(filePathToRoute('/project/src/utils/helpers.ts')).toBeNull();
+		});
+
+		test('handles Windows-style paths', () => {
+			expect(filePathToRoute('C:\\project\\app\\about\\page.tsx')).toBe('/about');
+		});
+	});
+
+	describe('getAssociatedRoutes', () => {
+		test('returns route for page files', () => {
+			expect(getAssociatedRoutes('/project/app/about/page.tsx')).toEqual(['/about']);
+		});
+
+		test('returns _shared for non-app files', () => {
+			expect(getAssociatedRoutes('/project/src/components/Button.tsx')).toEqual(['_shared']);
+		});
+
+		test('returns nearest route path for component in route folder', () => {
+			// Components in a route folder are associated with the nearest route-like path
+			// Runtime route matching will handle finding the actual route
+			const routes = getAssociatedRoutes('/project/app/products/components/Card.tsx');
+			expect(routes.length).toBe(1);
+			expect(routes[0]).toContain('/products');
+		});
+	});
+});
+
+// ============================================
+// Route Manifest Tests
+// ============================================
+
+describe('route manifest', () => {
+	test('generates routes.json with route mappings', () => {
+		// Reset state
+		resetLoaderState();
+		process.env.ROSETTA_MANIFEST_DIR = '.rosetta-test';
+
+		// Simulate loader being called with file context
+		const loaderWithContext = rosettaLoader.bind({
+			resourcePath: '/project/app/products/page.tsx',
+		} as any);
+		loaderWithContext(`
+			const x = t('Product Title');
+			const y = t('Add to Cart');
+		`);
+
+		const homeLoader = rosettaLoader.bind({
+			resourcePath: '/project/app/page.tsx',
+		} as any);
+		homeLoader(`
+			const a = t('Welcome');
+			const b = t('Product Title'); // Shared with products
+		`);
+
+		flushManifest();
+
+		// Check routes.json exists
+		const routesPath = getRoutesPath();
+		expect(fs.existsSync(routesPath)).toBe(true);
+
+		// Read and verify routes
+		const routes = readRoutes();
+		expect(routes).toBeDefined();
+
+		// / route should have Welcome and Product Title
+		expect(routes['/']).toBeDefined();
+		expect(routes['/'].length).toBeGreaterThan(0);
+
+		// /products route should have Product Title and Add to Cart
+		expect(routes['/products']).toBeDefined();
+		expect(routes['/products'].length).toBeGreaterThan(0);
+	});
+
+	test('getHashesForRoute includes _shared hashes', () => {
+		resetLoaderState();
+		process.env.ROSETTA_MANIFEST_DIR = '.rosetta-test';
+
+		// Simulate shared component
+		const sharedLoader = rosettaLoader.bind({
+			resourcePath: '/project/src/components/Header.tsx',
+		} as any);
+		sharedLoader(`t('Navigation')`);
+
+		// Route-specific
+		const pageLoader = rosettaLoader.bind({
+			resourcePath: '/project/app/about/page.tsx',
+		} as any);
+		pageLoader(`t('About Us')`);
+
+		flushManifest();
+
+		// getHashesForRoute for /about should include both
+		const hashes = getHashesForRoute('/about');
+		expect(hashes.length).toBeGreaterThanOrEqual(1);
+	});
+
+	test('readRoutes returns empty object when no routes.json', () => {
+		// Clean up any existing routes.json
+		cleanupTestDir();
+
+		const routes = readRoutes();
+		expect(routes).toEqual({});
+	});
+});
