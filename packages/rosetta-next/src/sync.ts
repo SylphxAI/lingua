@@ -12,9 +12,35 @@
  */
 
 import type { StorageAdapter } from '@sylphx/rosetta';
-import { readManifest, clearManifest } from './loader';
 import fs from 'node:fs';
 import path from 'node:path';
+
+// Inline manifest functions to avoid bunup duplicate export bug
+const MANIFEST_DIR = '.rosetta';
+const MANIFEST_FILE = 'manifest.json';
+
+function getManifestPath(): string {
+	return path.join(process.cwd(), MANIFEST_DIR, MANIFEST_FILE);
+}
+
+function readManifest(): Array<{ text: string; hash: string }> {
+	const manifestPath = getManifestPath();
+	if (!fs.existsSync(manifestPath)) {
+		return [];
+	}
+	try {
+		return JSON.parse(fs.readFileSync(manifestPath, 'utf-8'));
+	} catch {
+		return [];
+	}
+}
+
+function clearManifest(): void {
+	const manifestPath = getManifestPath();
+	if (fs.existsSync(manifestPath)) {
+		fs.unlinkSync(manifestPath);
+	}
+}
 
 export interface RosettaPluginOptions {
 	/** Storage adapter to sync to */
