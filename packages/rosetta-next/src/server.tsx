@@ -3,6 +3,20 @@ import { buildLocaleChain, runWithRosetta } from '@sylphx/rosetta/server';
 import type { ReactNode } from 'react';
 import { RosettaClientProvider } from './client';
 
+// Re-export locale utilities
+export {
+	getReadyLocales,
+	buildLocaleCookie,
+	parseLocaleCookie,
+	LOCALE_COOKIE_NAME,
+	LOCALE_COOKIE_MAX_AGE,
+	type LocaleConfig,
+	type LocaleEntry,
+	type LocaleWithStats,
+	type GetReadyLocalesOptions,
+	type LocaleCookieOptions,
+} from './locale';
+
 // ============================================
 // Types
 // ============================================

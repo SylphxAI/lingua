@@ -14,6 +14,18 @@
  *   const t = useT();
  *   return <button>{t("Click me")}</button>;
  * }
+ *
+ * @example
+ * // Language picker with locale cookie
+ * import { setLocaleCookie, getLocaleCookie } from '@sylphx/rosetta-next';
+ *
+ * function LanguagePicker({ locales }) {
+ *   return (
+ *     <select onChange={e => setLocaleCookie(e.target.value)}>
+ *       {locales.map(l => <option key={l.code} value={l.code}>{l.nativeName}</option>)}
+ *     </select>
+ *   );
+ * }
  */
 
 // Re-export all client-side exports
@@ -33,3 +45,13 @@ export {
 	type TranslationContextValue,
 	type RosettaClientProviderProps,
 } from './client';
+
+// Re-export locale cookie utilities (client-side)
+export {
+	setLocaleCookie,
+	getLocaleCookie,
+	clearLocaleCookie,
+	LOCALE_COOKIE_NAME,
+	LOCALE_COOKIE_MAX_AGE,
+	type SetLocaleCookieOptions,
+} from './locale-client';
