@@ -15,11 +15,15 @@ let _synced = false;
 
 /**
  * Auto-sync extracted strings from manifest to storage
- * Runs once per server lifecycle, on first RosettaProvider render
+ * - Production: Runs once per server lifecycle
+ * - Development: Checks on every request (hot reload support)
  */
 async function autoSyncManifest(storage: { registerSources: (sources: Array<{ text: string; hash: string }>) => Promise<void> }): Promise<void> {
-	// Already synced this server lifecycle
-	if (_synced) return;
+	const isDev = process.env.NODE_ENV !== 'production';
+
+	// In production, only sync once per server lifecycle
+	// In development, always check for new manifest (hot reload support)
+	if (!isDev && _synced) return;
 
 	// Already syncing (concurrent requests)
 	if (_syncPromise) {
@@ -29,7 +33,7 @@ async function autoSyncManifest(storage: { registerSources: (sources: Array<{ te
 
 	// Check if manifest exists
 	if (!fs.existsSync(MANIFEST_PATH)) {
-		_synced = true;
+		if (!isDev) _synced = true;
 		return;
 	}
 
@@ -46,7 +50,7 @@ async function autoSyncManifest(storage: { registerSources: (sources: Array<{ te
 		} catch (error) {
 			console.error('[rosetta] Auto-sync failed:', error);
 		} finally {
-			_synced = true;
+			if (!isDev) _synced = true;
 			_syncPromise = null;
 		}
 	})();
