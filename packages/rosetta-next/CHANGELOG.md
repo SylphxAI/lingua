@@ -1,5 +1,11 @@
 # Changelog
 
+## 0.1.4 (2025-12-08)
+
+### 🐛 Bug Fixes
+
+- **rosetta-next:** inline manifest functions to fix duplicate export bug ([7b782b3](https://github.com/SylphxAI/rosetta/commit/7b782b3ce4c174c0daddc355a8bacb016429bccd))
+
 ## 0.1.3 (2025-12-08)
 
 ### ✨ Features
