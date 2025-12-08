@@ -1,5 +1,29 @@
 # Changelog
 
+## 0.1.4 (2025-12-08)
+
+### ✨ Features
+
+- **rosetta:** add timeout to OpenRouter adapter ([129f86d](https://github.com/SylphxAI/rosetta/commit/129f86d856e8f15f322e358106c975f57d86ed12))
+- **rosetta:** add input validation with size limits ([b46f023](https://github.com/SylphxAI/rosetta/commit/b46f023cf9a68bf5eda0bee516619df5acd1e4c7))
+- **rosetta:** add caching layer for serverless deployments ([96e2d0f](https://github.com/SylphxAI/rosetta/commit/96e2d0f3e1db1aeed407d69963456ec8a2bb8520))
+
+### 🐛 Bug Fixes
+
+- **rosetta:** add explicit type annotations for isolatedDeclarations ([a9f7955](https://github.com/SylphxAI/rosetta/commit/a9f7955fe3e7778c8f5501826d2718000877e27d))
+
+### ⚡️ Performance
+
+- **rosetta:** optimize interpolation and add server ICU security ([d7f08b6](https://github.com/SylphxAI/rosetta/commit/d7f08b654e7437c9addc34c8583c08a643f39358))
+
+### ♻️ Refactoring
+
+- **rosetta:** extract shared ICU formatter module ([924a61f](https://github.com/SylphxAI/rosetta/commit/924a61f658cce082757f133140b1714124c8ce6a))
+
+### 💅 Styles
+
+- fix lint formatting ([651be20](https://github.com/SylphxAI/rosetta/commit/651be2074c18d9a127e30c77eef18ea3fbe6cdbe))
+
 ## 0.1.3 (2025-12-08)
 
 ### ✨ Features
