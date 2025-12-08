@@ -13,31 +13,31 @@
  * Maximum text length (10KB)
  * Prevents memory exhaustion from extremely long strings
  */
-export const MAX_TEXT_LENGTH = 10 * 1024; // 10KB
+export const MAX_TEXT_LENGTH: number = 10 * 1024; // 10KB
 
 /**
  * Maximum locale code length
  * Standard BCP 47 locale codes are typically under 20 chars
  */
-export const MAX_LOCALE_LENGTH = 35;
+export const MAX_LOCALE_LENGTH: number = 35;
 
 /**
  * Maximum context length
  * Context strings should be short identifiers
  */
-export const MAX_CONTEXT_LENGTH = 100;
+export const MAX_CONTEXT_LENGTH: number = 100;
 
 /**
  * Maximum hash length
  * Our hashes are 8 hex characters
  */
-export const MAX_HASH_LENGTH = 16;
+export const MAX_HASH_LENGTH: number = 16;
 
 /**
  * Maximum batch size for bulk operations
  * Prevents memory issues with large batches
  */
-export const MAX_BATCH_SIZE = 1000;
+export const MAX_BATCH_SIZE: number = 1000;
 
 // ============================================
 // Validation Functions
