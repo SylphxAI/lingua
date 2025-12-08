@@ -49,13 +49,9 @@ export interface RosettaPluginOptions {
 	verbose?: boolean;
 }
 
-interface NextConfig {
-	turbopack?: {
-		rules?: Record<string, { loaders: string[] }>;
-	};
-	webpack?: (config: unknown, context: unknown) => unknown;
-	[key: string]: unknown;
-}
+// Use permissive types for NextConfig to avoid conflicts with Next.js types
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
+type NextConfig = Record<string, any>;
 
 /**
  * Sync extracted strings from manifest to storage
@@ -136,8 +132,11 @@ export function withRosetta<T extends NextConfig>(
 	_storage = storage;
 	_verbose = verbose;
 
-	// Get loader path - resolve relative to this file's location
-	const loaderPath = new URL('./loader.js', import.meta.url).pathname;
+	// Get loader path - use require.resolve at runtime
+	// Use computed string to prevent bundler from resolving at build time
+	const loaderPackage = '@sylphx/rosetta-next' + '/loader';
+	// eslint-disable-next-line @typescript-eslint/no-require-imports
+	const loaderPath = require.resolve(loaderPackage);
 
 	return {
 		...nextConfig,

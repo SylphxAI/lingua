@@ -18,9 +18,23 @@
  * ```
  */
 
-import { hashText } from '@sylphx/rosetta';
 import fs from 'node:fs';
 import path from 'node:path';
+
+/**
+ * DJB2 hash with 33 multiplier - inlined to avoid external dependency
+ */
+function djb33x(str: string): number {
+	let hash = 5381;
+	for (let i = 0; i < str.length; i++) {
+		hash = (hash * 33) ^ str.charCodeAt(i);
+	}
+	return hash >>> 0;
+}
+
+function hashText(text: string): string {
+	return djb33x(text.trim()).toString(16).padStart(8, '0');
+}
 
 const MANIFEST_DIR = '.rosetta';
 const MANIFEST_FILE = 'manifest.json';
