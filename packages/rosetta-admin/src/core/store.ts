@@ -1,0 +1,385 @@
+/**
+ * Vanilla state store for translation admin
+ * Framework-agnostic - can be wrapped by React, Vue, Solid, etc.
+ */
+
+import type {
+	AdminAPIClient,
+	AdminState,
+	SourceEntry,
+	StatusFilter,
+	TranslationData,
+	ViewState,
+} from './types';
+import { getTranslationStatus, initialAdminState } from './types';
+
+type Listener = () => void;
+
+/**
+ * Create a vanilla admin store
+ */
+export function createAdminStore(client: AdminAPIClient) {
+	let state: AdminState = { ...initialAdminState };
+	const listeners = new Set<Listener>();
+
+	function getState(): AdminState {
+		return state;
+	}
+
+	function setState(partial: Partial<AdminState>) {
+		state = { ...state, ...partial };
+		listeners.forEach((listener) => listener());
+	}
+
+	function subscribe(listener: Listener): () => void {
+		listeners.add(listener);
+		return () => listeners.delete(listener);
+	}
+
+	// ==================== Computed Values ====================
+
+	/**
+	 * Get filtered sources based on current filters
+	 */
+	function getFilteredSources(): SourceEntry[] {
+		const { sources, activeLocale, searchQuery, statusFilter } = state;
+
+		if (!activeLocale) return sources;
+
+		return sources.filter((source) => {
+			// Search filter
+			if (searchQuery) {
+				const q = searchQuery.toLowerCase();
+				const matchesSource =
+					source.effectiveSource.toLowerCase().includes(q) ||
+					source.sourceText.toLowerCase().includes(q);
+				const matchesTranslation = source.translations[activeLocale]?.text
+					?.toLowerCase()
+					.includes(q);
+				if (!matchesSource && !matchesTranslation) return false;
+			}
+
+			// Status filter
+			if (statusFilter !== 'all') {
+				const translation = source.translations[activeLocale];
+				const status = getTranslationStatus(translation, translation?.outdated ?? false);
+
+				switch (statusFilter) {
+					case 'missing':
+						if (status !== 'missing') return false;
+						break;
+					case 'outdated':
+						if (status !== 'outdated') return false;
+						break;
+					case 'unreviewed':
+						if (status !== 'unreviewed') return false;
+						break;
+					case 'reviewed':
+						if (status !== 'reviewed' && status !== 'current') return false;
+						break;
+				}
+			}
+
+			return true;
+		});
+	}
+
+	/**
+	 * Get locale progress percentage
+	 */
+	function getLocaleProgress(locale: string): number {
+		const localeStats = state.stats.locales[locale];
+		if (!localeStats || localeStats.total === 0) return 0;
+		return Math.round((localeStats.translated / localeStats.total) * 100);
+	}
+
+	/**
+	 * Get count of outdated translations for a locale
+	 */
+	function getOutdatedCount(locale: string): number {
+		return state.sources.filter((s) => s.translations[locale]?.outdated).length;
+	}
+
+	/**
+	 * Get sources that need translation for current locale
+	 */
+	function getUntranslatedSources(): SourceEntry[] {
+		const { sources, activeLocale } = state;
+		if (!activeLocale) return [];
+		return sources.filter((s) => !s.translations[activeLocale]?.text);
+	}
+
+	// ==================== Actions ====================
+
+	/**
+	 * Fetch all translation data
+	 */
+	async function fetchData(): Promise<void> {
+		setState({ isLoading: true, error: null });
+		try {
+			const data = await client.fetchTranslations();
+			setState({
+				sources: data.sources,
+				stats: data.stats,
+				locales: data.locales,
+				isLoading: false,
+			});
+		} catch (err) {
+			setState({
+				isLoading: false,
+				error: err instanceof Error ? err.message : 'Failed to fetch translations',
+			});
+			throw err;
+		}
+	}
+
+	/**
+	 * Enter editor view for a locale
+	 */
+	function enterEditor(locale: string): void {
+		setState({
+			view: 'editor',
+			activeLocale: locale,
+			searchQuery: '',
+			statusFilter: 'all',
+			editingHash: null,
+		});
+	}
+
+	/**
+	 * Exit editor view
+	 */
+	function exitEditor(): void {
+		setState({
+			view: 'dashboard',
+			activeLocale: null,
+			searchQuery: '',
+			statusFilter: 'all',
+			editingHash: null,
+		});
+	}
+
+	/**
+	 * Set search query
+	 */
+	function setSearchQuery(query: string): void {
+		setState({ searchQuery: query });
+	}
+
+	/**
+	 * Set status filter
+	 */
+	function setStatusFilter(filter: StatusFilter): void {
+		setState({ statusFilter: filter });
+	}
+
+	/**
+	 * Set currently editing hash
+	 */
+	function setEditingHash(hash: string | null): void {
+		setState({ editingHash: hash });
+	}
+
+	/**
+	 * Save a translation
+	 */
+	async function saveTranslation(
+		sourceHash: string,
+		translatedText: string,
+		locale?: string
+	): Promise<void> {
+		const targetLocale = locale || state.activeLocale;
+		if (!targetLocale) throw new Error('No locale selected');
+
+		// Find source to get effective source text
+		const source = state.sources.find((s) => s.sourceHash === sourceHash);
+		if (!source) throw new Error('Source not found');
+
+		await client.saveTranslation({
+			sourceHash,
+			locale: targetLocale,
+			translatedText,
+			autoGenerated: false,
+			translatedFrom: source.effectiveSource,
+		});
+
+		// Optimistic update
+		setState({
+			sources: state.sources.map((s) => {
+				if (s.sourceHash !== sourceHash) return s;
+				return {
+					...s,
+					translations: {
+						...s.translations,
+						[targetLocale]: {
+							text: translatedText,
+							auto: false,
+							reviewed: false,
+							translatedFrom: source.effectiveSource,
+							outdated: false,
+						} satisfies TranslationData,
+					},
+				};
+			}),
+		});
+	}
+
+	/**
+	 * Mark a translation as reviewed
+	 */
+	async function markAsReviewed(sourceHash: string, locale?: string): Promise<void> {
+		const targetLocale = locale || state.activeLocale;
+		if (!targetLocale) throw new Error('No locale selected');
+
+		await client.markAsReviewed({ sourceHash, locale: targetLocale });
+
+		// Optimistic update
+		setState({
+			sources: state.sources.map((s) => {
+				if (s.sourceHash !== sourceHash) return s;
+				const existing = s.translations[targetLocale];
+				if (!existing) return s;
+				return {
+					...s,
+					translations: {
+						...s.translations,
+						[targetLocale]: {
+							...existing,
+							reviewed: true,
+						},
+					},
+				};
+			}),
+		});
+	}
+
+	/**
+	 * Batch translate using AI
+	 */
+	async function batchTranslate(locale?: string, hashes?: string[]): Promise<void> {
+		const targetLocale = locale || state.activeLocale;
+		if (!targetLocale) throw new Error('No locale selected');
+
+		// Get items to translate
+		let items = state.sources
+			.filter((s) => !s.translations[targetLocale]?.text) // Missing translations
+			.map((s) => ({
+				sourceHash: s.sourceHash,
+				sourceText: s.effectiveSource,
+				context: s.context,
+			}));
+
+		// Filter by specific hashes if provided
+		if (hashes && hashes.length > 0) {
+			const hashSet = new Set(hashes);
+			items = items.filter((item) => hashSet.has(item.sourceHash));
+		}
+
+		if (items.length === 0) return;
+
+		setState({
+			isBatchTranslating: true,
+			batchProgress: { current: 0, total: items.length },
+			error: null,
+		});
+
+		try {
+			const result = await client.batchTranslate({
+				items,
+				locale: targetLocale,
+			});
+
+			// Update sources with new translations
+			const translationMap = new Map(result.translations.map((t) => [t.sourceHash, t.translatedText]));
+
+			setState({
+				isBatchTranslating: false,
+				batchProgress: { current: result.translated, total: items.length },
+				sources: state.sources.map((s) => {
+					const translatedText = translationMap.get(s.sourceHash);
+					if (!translatedText) return s;
+
+					return {
+						...s,
+						translations: {
+							...s.translations,
+							[targetLocale]: {
+								text: translatedText,
+								auto: true,
+								reviewed: false,
+								translatedFrom: s.effectiveSource,
+								outdated: false,
+							} satisfies TranslationData,
+						},
+					};
+				}),
+			});
+
+			// Refresh data to get updated stats
+			await fetchData();
+		} catch (err) {
+			setState({
+				isBatchTranslating: false,
+				error: err instanceof Error ? err.message : 'Batch translation failed',
+			});
+			throw err;
+		}
+	}
+
+	/**
+	 * Add a new locale
+	 */
+	async function addLocale(locale: string): Promise<void> {
+		if (!client.addLocale) {
+			// Just add to local state if API doesn't support it
+			if (!state.locales.includes(locale)) {
+				setState({ locales: [...state.locales, locale] });
+			}
+			return;
+		}
+
+		await client.addLocale(locale);
+		await fetchData();
+	}
+
+	/**
+	 * Remove a locale
+	 */
+	async function removeLocale(locale: string): Promise<void> {
+		if (!client.removeLocale) {
+			// Just remove from local state if API doesn't support it
+			setState({ locales: state.locales.filter((l) => l !== locale) });
+			return;
+		}
+
+		await client.removeLocale(locale);
+		await fetchData();
+	}
+
+	return {
+		// State
+		getState,
+		subscribe,
+
+		// Computed
+		getFilteredSources,
+		getLocaleProgress,
+		getOutdatedCount,
+		getUntranslatedSources,
+
+		// Actions
+		fetchData,
+		enterEditor,
+		exitEditor,
+		setSearchQuery,
+		setStatusFilter,
+		setEditingHash,
+		saveTranslation,
+		markAsReviewed,
+		batchTranslate,
+		addLocale,
+		removeLocale,
+	};
+}
+
+export type AdminStore = ReturnType<typeof createAdminStore>;

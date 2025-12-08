@@ -1,10 +1,13 @@
 # @sylphx/rosetta-admin - Design Document
 
-> Translation Management Admin UI for Rosetta
+> Translation Management Admin Hooks for Rosetta
+
+**Status: V1 Implemented** (Pure Hooks + tRPC + REST)
 
 ## Overview
 
-A headless-first translation admin UI that can be dropped into any Next.js app.
+A headless, pure-hooks translation admin library. No UI components - just logic.
+Users build their own UI using their existing design system (shadcn, Tailwind, etc.).
 
 ## Key Features
 

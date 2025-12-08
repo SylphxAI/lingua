@@ -1,0 +1,85 @@
+{
+	"name": "@sylphx/rosetta-admin",
+	"version": "0.1.0",
+	"description": "Headless translation admin hooks for @sylphx/rosetta",
+	"license": "MIT",
+	"type": "module",
+	"exports": {
+		".": {
+			"types": "./dist/index.d.ts",
+			"import": "./dist/index.js"
+		},
+		"./react": {
+			"types": "./dist/react/index.d.ts",
+			"import": "./dist/react/index.js"
+		},
+		"./server": {
+			"types": "./dist/server/index.d.ts",
+			"import": "./dist/server/index.js"
+		},
+		"./server/trpc": {
+			"types": "./dist/server/trpc.d.ts",
+			"import": "./dist/server/trpc.js"
+		},
+		"./ai": {
+			"types": "./dist/ai/index.d.ts",
+			"import": "./dist/ai/index.js"
+		}
+	},
+	"files": [
+		"dist"
+	],
+	"scripts": {
+		"build": "tsup",
+		"dev": "tsup --watch",
+		"test": "bun test",
+		"typecheck": "tsc --noEmit",
+		"clean": "rm -rf dist",
+		"lint": "biome check .",
+		"format": "biome format --write ."
+	},
+	"peerDependencies": {
+		"@sylphx/rosetta": ">=0.1.0",
+		"react": "^18.0.0 || ^19.0.0"
+	},
+	"peerDependenciesMeta": {
+		"react": {
+			"optional": true
+		}
+	},
+	"optionalDependencies": {
+		"@trpc/server": ">=11.0.0"
+	},
+	"devDependencies": {
+		"@biomejs/biome": "^2.3.8",
+		"@sylphx/biome-config": "^0.4.1",
+		"@sylphx/rosetta": "workspace:*",
+		"@trpc/server": "^11.1.0",
+		"@types/bun": "^1.1.14",
+		"@types/react": "^19",
+		"react": "^19.0.0",
+		"tsup": "^8.5.1",
+		"typescript": "^5",
+		"zod": "^3.24.0"
+	},
+	"publishConfig": {
+		"access": "public"
+	},
+	"repository": {
+		"type": "git",
+		"url": "https://github.com/SylphxAI/rosetta.git",
+		"directory": "packages/rosetta-admin"
+	},
+	"homepage": "https://github.com/SylphxAI/rosetta#readme",
+	"bugs": {
+		"url": "https://github.com/SylphxAI/rosetta/issues"
+	},
+	"keywords": [
+		"i18n",
+		"translation",
+		"admin",
+		"rosetta",
+		"headless",
+		"react-hooks"
+	]
+}
