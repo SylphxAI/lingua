@@ -18,7 +18,7 @@
 		"dist"
 	],
 	"scripts": {
-		"build": "bunup src/index.tsx src/server.tsx --dts --external react --external @sylphx/rosetta",
+		"build": "NODE_ENV=production bunup src/index.tsx src/server.tsx --dts --external react --external @sylphx/rosetta",
 		"dev": "bunup src/index.tsx src/server.tsx --dts --external react --external @sylphx/rosetta --watch",
 		"typecheck": "tsc --noEmit",
 		"clean": "rm -rf dist"
