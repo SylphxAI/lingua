@@ -249,6 +249,7 @@ export class DrizzleStorageAdapter<
 
 	/**
 	 * Register source strings (batch insert, skip duplicates)
+	 * Increments occurrence count for existing sources.
 	 */
 	async registerSources(
 		items: Array<{
@@ -258,6 +259,8 @@ export class DrizzleStorageAdapter<
 		}>
 	): Promise<void> {
 		if (items.length === 0) return;
+
+		const now = new Date();
 
 		// Get existing hashes
 		const hashes = items.map((i) => i.hash);
@@ -270,25 +273,23 @@ export class DrizzleStorageAdapter<
 
 		const existingSet = new Set(existing.map((e) => e.hash));
 
-		// Filter to new items only
+		// Insert new items only
 		const newItems = items.filter((i) => !existingSet.has(i.hash));
-		if (newItems.length === 0) return;
-
-		// Insert new items
-		const now = new Date();
-		await this.db
-			.insert(this.sources)
-			.values(
-				newItems.map((item) => ({
-					hash: item.hash,
-					text: item.text,
-					context: item.context ?? null,
-					occurrences: 1,
-					firstSeenAt: now,
-					lastSeenAt: now,
-				}))
-			)
-			.onConflictDoNothing();
+		if (newItems.length > 0) {
+			await this.db
+				.insert(this.sources)
+				.values(
+					newItems.map((item) => ({
+						hash: item.hash,
+						text: item.text,
+						context: item.context ?? null,
+						occurrences: 1,
+						firstSeenAt: now,
+						lastSeenAt: now,
+					}))
+				)
+				.onConflictDoNothing();
+		}
 
 		// Bulk update occurrences for existing items (single query instead of N queries)
 		const existingHashes = items.filter((i) => existingSet.has(i.hash)).map((i) => i.hash);
