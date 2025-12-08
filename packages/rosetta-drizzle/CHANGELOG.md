@@ -1,5 +1,31 @@
 # Changelog
 
+## 0.1.6 (2025-12-08)
+
+### ✨ Features
+
+- **rosetta-drizzle:** support custom table names in schema creators ([3d6ce17](https://github.com/SylphxAI/rosetta/commit/3d6ce17d86b5eea7d8a88032f4cc623612e825ea))
+
+### 🐛 Bug Fixes
+
+- **rosetta-next,rosetta-drizzle:** security and performance hardening ([2c2d43d](https://github.com/SylphxAI/rosetta/commit/2c2d43d27d4db579bc94c5aee238ca5131df2228))
+
+### ⚡️ Performance
+
+- **rosetta-drizzle:** replace N+1 queries with bulk operations ([37c7541](https://github.com/SylphxAI/rosetta/commit/37c7541d78675f7b013e55c37e19f86c32c235f7))
+
+### ♻️ Refactoring
+
+- improve DrizzleAdapter type safety and shared ICU module ([8abda25](https://github.com/SylphxAI/rosetta/commit/8abda25f533f3ae5695282b9cc6e325f2d914a61))
+
+### 💅 Styles
+
+- fix lint formatting ([651be20](https://github.com/SylphxAI/rosetta/commit/651be2074c18d9a127e30c77eef18ea3fbe6cdbe))
+
+### ✅ Tests
+
+- **rosetta-drizzle:** add comprehensive adapter tests ([01d58ec](https://github.com/SylphxAI/rosetta/commit/01d58ec82c99ee99c2ff2e6b3720820847330d37))
+
 ## 0.1.5 (2025-12-07)
 
 ### 🐛 Bug Fixes
