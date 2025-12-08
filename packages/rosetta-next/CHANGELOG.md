@@ -1,5 +1,23 @@
 # Changelog
 
+## 0.1.12 (2025-12-08)
+
+### ✨ Features
+
+- **rosetta-next:** comprehensive reliability and performance overhaul ([151f53d](https://github.com/SylphxAI/rosetta/commit/151f53dfcf5cd6caee40b2878edf28be72ea6cb0))
+
+### 🐛 Bug Fixes
+
+- **rosetta-next,rosetta-drizzle:** security and performance hardening ([2c2d43d](https://github.com/SylphxAI/rosetta/commit/2c2d43d27d4db579bc94c5aee238ca5131df2228))
+
+### ♻️ Refactoring
+
+- **rosetta:** extract shared ICU formatter module ([924a61f](https://github.com/SylphxAI/rosetta/commit/924a61f658cce082757f133140b1714124c8ce6a))
+
+### ✅ Tests
+
+- **rosetta-next:** add loader and sync tests ([1b76245](https://github.com/SylphxAI/rosetta/commit/1b7624501ef0da61e53e38ab8bd4fd50456d3da2))
+
 ## 0.1.11 (2025-12-08)
 
 ### ✨ Features
