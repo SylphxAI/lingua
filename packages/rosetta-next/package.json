@@ -7,27 +7,31 @@
 	"exports": {
 		".": {
 			"types": "./dist/index.d.ts",
-			"import": "./dist/index.js"
+			"import": "./dist/index.js",
+			"require": "./dist/index.cjs"
 		},
 		"./server": {
 			"types": "./dist/server.d.ts",
-			"import": "./dist/server.js"
+			"import": "./dist/server.js",
+			"require": "./dist/server.cjs"
 		},
 		"./loader": {
 			"types": "./dist/loader.d.ts",
-			"import": "./dist/loader.js"
+			"import": "./dist/loader.js",
+			"require": "./dist/loader.cjs"
 		},
 		"./sync": {
 			"types": "./dist/sync.d.ts",
-			"import": "./dist/sync.js"
+			"import": "./dist/sync.js",
+			"require": "./dist/sync.cjs"
 		}
 	},
 	"files": [
 		"dist"
 	],
 	"scripts": {
-		"build": "NODE_ENV=production bunup src/index.tsx src/server.tsx src/loader.ts src/sync.ts --dts --external react --external @sylphx/rosetta",
-		"dev": "bunup src/index.tsx src/server.tsx src/loader.ts src/sync.ts --dts --external react --external @sylphx/rosetta --watch",
+		"build": "NODE_ENV=production bunup src/index.tsx src/server.tsx src/loader.ts src/sync.ts --format esm,cjs --dts --external react --external @sylphx/rosetta",
+		"dev": "bunup src/index.tsx src/server.tsx src/loader.ts src/sync.ts --format esm,cjs --dts --external react --external @sylphx/rosetta --watch",
 		"typecheck": "tsc --noEmit",
 		"clean": "rm -rf dist"
 	},
