@@ -588,6 +588,105 @@ The `@sylphx/rosetta-drizzle` package supports:
 - **SQLite** - `createRosettaSchemaSQLite()`
 - **MySQL** - `createRosettaSchemaMySQL()`
 
+## Next.js Sync (`@sylphx/rosetta-next/sync`)
+
+The sync module provides build-time string extraction for Next.js projects:
+
+```typescript
+// next.config.ts
+import { withRosetta } from '@sylphx/rosetta-next/sync';
+
+export default withRosetta({
+  // your next config
+});
+```
+
+```typescript
+// scripts/sync-rosetta.ts (run after build)
+import { syncRosetta } from '@sylphx/rosetta-next/sync';
+import { storage } from '../src/lib/rosetta-storage';
+
+await syncRosetta(storage, { verbose: true });
+```
+
+### Distributed Lock Behavior
+
+`syncRosetta()` uses a **file-based lock** to prevent multiple processes from syncing simultaneously.
+
+#### ✅ Works Well For
+
+- **Single-server deployments** - Traditional Node.js servers
+- **CI/CD pipelines** - Single build runner syncing to DB
+- **Development** - Local development workflows
+- **Docker single-instance** - One container syncing at a time
+
+#### ⚠️ Limitations
+
+| Environment | Issue | Recommendation |
+|------------|-------|----------------|
+| **Kubernetes multi-pod** | Pods have isolated filesystems, lock not shared | Sync from CI/CD only, not at runtime |
+| **Vercel/Lambda** | Ephemeral filesystems don't persist | Use `forceLock: true` or sync in build step |
+| **Docker Swarm/ECS** | Each container has own filesystem | Sync from single deployment task |
+| **NFS/shared filesystem** | `O_EXCL` may not be atomic | Use database-level locking instead |
+
+#### Recommended Patterns
+
+**Pattern 1: CI/CD Sync (Recommended)**
+```bash
+# In your CI/CD pipeline, after build
+bun run sync-rosetta.ts
+```
+This ensures only one process syncs, regardless of deployment target.
+
+**Pattern 2: Force Lock for Serverless**
+```typescript
+// Acceptable for idempotent operations like string registration
+await syncRosetta(storage, {
+  forceLock: true,  // Skip lock acquisition
+  verbose: true,
+});
+```
+⚠️ May cause duplicate DB calls but `registerSources` is idempotent (uses `ON CONFLICT DO NOTHING`).
+
+**Pattern 3: Custom Database Lock**
+```typescript
+// Implement your own distributed lock with Redis/database
+const lockAcquired = await acquireRedisLock('rosetta-sync');
+if (lockAcquired) {
+  try {
+    await syncRosetta(storage, { forceLock: true });
+  } finally {
+    await releaseRedisLock('rosetta-sync');
+  }
+}
+```
+
+## Caching
+
+For serverless environments where DB latency matters, use the cache adapters:
+
+```typescript
+import { Rosetta, ExternalCache } from '@sylphx/rosetta/server';
+import { Redis } from '@upstash/redis';
+
+const redis = new Redis({ url, token });
+const cache = new ExternalCache(redis, { ttlSeconds: 60 });
+
+const rosetta = new Rosetta({
+  storage,
+  cache,  // Optional: reduces DB queries in serverless
+  defaultLocale: 'en',
+});
+
+// Invalidate cache after admin updates translations
+await rosetta.invalidateCache('zh-TW');
+```
+
+Available cache adapters:
+- **`InMemoryCache`** - LRU cache for traditional servers
+- **`ExternalCache`** - Redis/Upstash for serverless (cross-pod)
+- **`RequestScopedCache`** - Request-level deduplication
+
 ## License
 
 MIT
