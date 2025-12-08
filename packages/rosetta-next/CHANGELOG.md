@@ -1,5 +1,11 @@
 # Changelog
 
+## 0.1.16 (2025-12-08)
+
+### ✨ Features
+
+- **rosetta-next:** add page-level translation loading (zero-config) ([64d88e4](https://github.com/SylphxAI/rosetta/commit/64d88e4ac252c7e88ef67895e3c54be04cb8d37e))
+
 ## 0.1.15 (2025-12-08)
 
 ### ✨ Features
