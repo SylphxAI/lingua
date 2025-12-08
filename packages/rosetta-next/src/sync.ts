@@ -27,7 +27,7 @@ import type { StorageAdapter } from '@sylphx/rosetta';
 // Configuration
 // ============================================
 
-const MANIFEST_DIR = process.env.ROSETTA_MANIFEST_DIR ?? '.rosetta';
+const DEFAULT_MANIFEST_DIR = '.rosetta';
 const MANIFEST_FILE = 'manifest.json';
 const LOCK_FILE = 'sync.lock';
 const LOCK_TIMEOUT_MS = 30000; // 30 seconds max lock duration
@@ -39,7 +39,9 @@ const LOCK_MAX_RETRIES = 50; // Max 5 seconds waiting for lock
 // ============================================
 
 function getManifestDir(): string {
-	return path.join(process.cwd(), MANIFEST_DIR);
+	// Read env at runtime (not module load time) for testability
+	const dir = process.env.ROSETTA_MANIFEST_DIR ?? DEFAULT_MANIFEST_DIR;
+	return path.join(process.cwd(), dir);
 }
 
 function getManifestPath(): string {

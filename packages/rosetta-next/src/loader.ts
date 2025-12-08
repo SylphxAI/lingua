@@ -28,11 +28,12 @@ import { hashText } from '@sylphx/rosetta';
 // Configuration
 // ============================================
 
-const MANIFEST_DIR = process.env.ROSETTA_MANIFEST_DIR ?? '.rosetta';
+const DEFAULT_MANIFEST_DIR = '.rosetta';
 const MANIFEST_FILE = 'manifest.json';
 
 function getManifestDir(): string {
-	const dir = MANIFEST_DIR;
+	// Read env at runtime (not module load time) for testability
+	const dir = process.env.ROSETTA_MANIFEST_DIR ?? DEFAULT_MANIFEST_DIR;
 
 	// Security: Validate path to prevent traversal attacks
 	if (dir.includes('..') || path.isAbsolute(dir)) {
