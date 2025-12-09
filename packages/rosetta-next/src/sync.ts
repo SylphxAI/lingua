@@ -384,6 +384,44 @@ export async function syncRosetta(
 	}
 }
 
+// Track if sync has been scheduled to avoid duplicates
+let syncScheduled = false;
+
+/**
+ * Schedule auto-sync to run when build process exits
+ * Works with both Webpack and Turbopack builds
+ */
+function scheduleAutoSync(storage: StorageAdapter, verbose: boolean): void {
+	if (syncScheduled) return;
+	syncScheduled = true;
+
+	// Use beforeExit for async operations (works when event loop is empty)
+	process.on('beforeExit', async () => {
+		if (verbose) {
+			console.log('[rosetta] Build complete, syncing strings to DB...');
+		}
+
+		try {
+			const result = await syncRosetta(storage, {
+				verbose,
+				// In production builds, preserve manifest for multi-pod safety
+				clearAfterSync: process.env.NODE_ENV !== 'production',
+			});
+
+			if (result.synced > 0) {
+				console.log(`[rosetta] ✓ Synced ${result.synced} strings to database`);
+			} else if (result.skipped) {
+				console.log('[rosetta] ⏭️ Sync skipped (another process is syncing)');
+			} else {
+				console.log('[rosetta] ⏭️ No new strings to sync');
+			}
+		} catch (error) {
+			console.error('[rosetta] ❌ Failed to sync strings:', error);
+			// Don't fail the build - sync failure shouldn't block deployment
+		}
+	});
+}
+
 /**
  * Create a Next.js config with Rosetta loader integration
  *
@@ -418,6 +456,12 @@ export function withRosetta<T extends NextConfig>(
 		}
 	}
 
+	// Schedule auto-sync if storage is provided
+	// This works for both Webpack and Turbopack builds
+	if (storage) {
+		scheduleAutoSync(storage, verbose);
+	}
+
 	return {
 		...nextConfig,
 		// Add Turbopack rules for loader
@@ -445,57 +489,10 @@ export function withRosetta<T extends NextConfig>(
 				use: [loaderPath],
 			});
 
-			// Add auto-sync plugin if storage is provided
-			// Only run on server build (not client) to avoid duplicate syncs
-			if (storage && context.isServer) {
-				config.plugins.push(new RosettaSyncPlugin(storage, verbose));
-			}
-
 			if (nextConfig.webpack) {
 				return nextConfig.webpack(config, context);
 			}
 			return config;
 		},
 	} as T;
-}
-
-/**
- * Webpack plugin to auto-sync strings after build completes
- * @internal
- */
-class RosettaSyncPlugin {
-	private storage: StorageAdapter;
-	private verbose: boolean;
-
-	constructor(storage: StorageAdapter, verbose: boolean) {
-		this.storage = storage;
-		this.verbose = verbose;
-	}
-
-	apply(compiler: { hooks: { afterDone: { tapPromise: (name: string, fn: () => Promise<void>) => void } } }) {
-		compiler.hooks.afterDone.tapPromise('RosettaSyncPlugin', async () => {
-			if (this.verbose) {
-				console.log('[rosetta] Build complete, syncing strings to DB...');
-			}
-
-			try {
-				const result = await syncRosetta(this.storage, {
-					verbose: this.verbose,
-					// In production builds, preserve manifest for multi-pod safety
-					clearAfterSync: process.env.NODE_ENV !== 'production',
-				});
-
-				if (result.synced > 0) {
-					console.log(`[rosetta] ✓ Synced ${result.synced} strings to database`);
-				} else if (result.skipped) {
-					console.log('[rosetta] ⏭️ Sync skipped (another process is syncing)');
-				} else {
-					console.log('[rosetta] ⏭️ No new strings to sync');
-				}
-			} catch (error) {
-				console.error('[rosetta] ❌ Failed to sync strings:', error);
-				// Don't fail the build - sync failure shouldn't block deployment
-			}
-		});
-	}
 }
