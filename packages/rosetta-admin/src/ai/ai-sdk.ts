@@ -14,7 +14,7 @@
  * });
  *
  * const translator = createAiSdkTranslator({
- *   model: openrouter('anthropic/claude-sonnet-4'),
+ *   model: openrouter(process.env.LLM_MODEL!), // User chooses model
  * });
  * ```
  *
@@ -25,7 +25,7 @@
  * import { anthropic } from '@ai-sdk/anthropic';
  *
  * const translator = createAiSdkTranslator({
- *   model: anthropic('claude-sonnet-4-20250514'),
+ *   model: anthropic(process.env.ANTHROPIC_MODEL!), // User chooses model
  * });
  * ```
  */

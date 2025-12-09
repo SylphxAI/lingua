@@ -1,5 +1,7 @@
 /**
- * Anthropic Claude AI translator (direct API)
+ * Anthropic Claude AI translator
+ *
+ * Uses @anthropic-ai/sdk for structured JSON output.
  *
  * @example
  * ```ts
@@ -7,12 +9,7 @@
  *
  * const translator = createAnthropicTranslator({
  *   apiKey: process.env.ANTHROPIC_API_KEY!,
- *   model: 'claude-sonnet-4-20250514',
- * });
- *
- * export const adminRouter = createAdminRouter({
- *   storage,
- *   translator,
+ *   model: process.env.ANTHROPIC_MODEL!, // User chooses model
  * });
  * ```
  */
@@ -22,23 +19,15 @@ import type { BatchTranslationItem, TranslateFunction } from '../core/types';
 export interface AnthropicTranslatorConfig {
 	/** Anthropic API key */
 	apiKey: string;
-	/** Model to use (default: claude-sonnet-4-20250514) */
-	model?: string;
-	/** Max items per batch (default: 50) */
+	/** Model to use (e.g., 'claude-sonnet-4-20250514', 'claude-3-5-haiku-20241022') */
+	model: string;
+	/** Max items per batch (default: 30) */
 	batchSize?: number;
 	/** Custom system prompt (optional) */
 	systemPrompt?: (locale: string, localeName: string) => string;
 }
 
-interface AnthropicResponse {
-	content: Array<{
-		type: 'text';
-		text: string;
-	}>;
-}
-
-const DEFAULT_MODEL = 'claude-sonnet-4-20250514';
-const DEFAULT_BATCH_SIZE = 50;
+const DEFAULT_BATCH_SIZE = 30;
 
 /**
  * Locale code to display name mapping (common languages)
@@ -76,13 +65,6 @@ const LOCALE_NAMES: Record<string, string> = {
 	no: 'Norwegian',
 	hu: 'Hungarian',
 	ro: 'Romanian',
-	sk: 'Slovak',
-	bg: 'Bulgarian',
-	hr: 'Croatian',
-	sl: 'Slovenian',
-	et: 'Estonian',
-	lv: 'Latvian',
-	lt: 'Lithuanian',
 };
 
 function getLocaleName(code: string): string {
@@ -97,26 +79,62 @@ RULES:
 - Keep the same tone and formality level
 - Preserve any placeholders like {name}, {{count}}, %s, %d exactly as-is
 - For technical terms, use standard local terminology
-- Use context (if provided) to disambiguate meaning
-- Return ONLY valid JSON`;
+- Use context (if provided) to disambiguate meaning`;
+}
+
+/**
+ * JSON Schema for batch translation response
+ */
+const translationSchema = {
+	name: 'batch_translation',
+	description: 'Batch translation result',
+	input_schema: {
+		type: 'object',
+		properties: {
+			translations: {
+				type: 'array',
+				description: 'Array of translated strings',
+				items: {
+					type: 'object',
+					properties: {
+						sourceHash: {
+							type: 'string',
+							description: 'The original source hash',
+						},
+						translatedText: {
+							type: 'string',
+							description: 'The translated text',
+						},
+					},
+					required: ['sourceHash', 'translatedText'],
+				},
+			},
+		},
+		required: ['translations'],
+	},
+} as const;
+
+interface TranslationResponse {
+	translations: Array<{ sourceHash: string; translatedText: string }>;
 }
 
 /**
  * Create an Anthropic Claude translator
+ *
+ * Requires `@anthropic-ai/sdk` as a peer dependency.
  */
 export function createAnthropicTranslator(config: AnthropicTranslatorConfig): TranslateFunction {
-	const {
-		apiKey,
-		model = DEFAULT_MODEL,
-		batchSize = DEFAULT_BATCH_SIZE,
-		systemPrompt = defaultSystemPrompt,
-	} = config;
+	const { apiKey, model, batchSize = DEFAULT_BATCH_SIZE, systemPrompt = defaultSystemPrompt } = config;
 
 	return async (items: BatchTranslationItem[], targetLocale: string) => {
 		if (items.length === 0) {
 			return [];
 		}
 
+		// Dynamic import to avoid requiring @anthropic-ai/sdk as a hard dependency
+		const { default: Anthropic } = await import('@anthropic-ai/sdk');
+
+		const anthropic = new Anthropic({ apiKey });
 		const localeName = getLocaleName(targetLocale);
 		const results: Array<{ sourceHash: string; translatedText: string }> = [];
 
@@ -130,49 +148,27 @@ export function createAnthropicTranslator(config: AnthropicTranslatorConfig): Tr
 				...(item.context && { context: item.context }),
 			}));
 
-			const response = await fetch('https://api.anthropic.com/v1/messages', {
-				method: 'POST',
-				headers: {
-					'Content-Type': 'application/json',
-					'x-api-key': apiKey,
-					'anthropic-version': '2023-06-01',
-				},
-				body: JSON.stringify({
-					model,
-					max_tokens: 4096,
-					system: systemPrompt(targetLocale, localeName),
-					messages: [
-						{
-							role: 'user',
-							content: `Translate these UI strings to ${localeName}:
-
-${JSON.stringify(itemsJson, null, 2)}
-
-Return a JSON object with "translations" array containing objects with "sourceHash" and "translatedText" for each item.`,
-						},
-					],
-				}),
+			const response = await anthropic.messages.create({
+				model,
+				max_tokens: 4096,
+				system: systemPrompt(targetLocale, localeName),
+				tools: [translationSchema],
+				tool_choice: { type: 'tool', name: 'batch_translation' },
+				messages: [
+					{
+						role: 'user',
+						content: `Translate these UI strings to ${localeName}:\n\n${JSON.stringify(itemsJson, null, 2)}`,
+					},
+				],
 			});
 
-			if (!response.ok) {
-				const error = await response.text();
-				throw new Error(`Anthropic API error: ${response.status} - ${error}`);
+			// Extract tool use result
+			const toolUse = response.content.find((c) => c.type === 'tool_use');
+			if (!toolUse || toolUse.type !== 'tool_use') {
+				throw new Error('No tool use in Anthropic response');
 			}
 
-			const data = (await response.json()) as AnthropicResponse;
-			const content = data.content.find((c) => c.type === 'text')?.text;
-
-			if (!content) {
-				throw new Error('No response content from Anthropic');
-			}
-
-			// Extract JSON from response (might be wrapped in markdown code blocks)
-			const jsonMatch = content.match(/\{[\s\S]*\}/);
-			if (!jsonMatch) {
-				throw new Error('Could not parse JSON from Anthropic response');
-			}
-
-			const parsed = JSON.parse(jsonMatch[0]) as { translations: Array<{ sourceHash: string; translatedText: string }> };
+			const parsed = toolUse.input as TranslationResponse;
 
 			if (parsed.translations && Array.isArray(parsed.translations)) {
 				results.push(...parsed.translations);

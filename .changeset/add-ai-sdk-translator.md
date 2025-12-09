@@ -2,9 +2,10 @@
 "@sylphx/rosetta-admin": minor
 ---
 
-Add createAiSdkTranslator for Vercel AI SDK users
+Improve AI translators with proper SDK support
 
-New translator option that works with any AI SDK provider:
-- Uses generateObject for structured output
-- Works with OpenRouter, Anthropic, OpenAI, Google, etc.
-- Users pass their own model instance
+- Add createAiSdkTranslator for Vercel AI SDK users (any provider)
+- Update createOpenRouterTranslator to use @openrouter/sdk
+- Update createAnthropicTranslator to use @anthropic-ai/sdk with tool use
+- All translators now require model parameter (no hardcoded defaults)
+- Uses structured output / JSON schema for reliable parsing

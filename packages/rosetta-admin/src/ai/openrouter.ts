@@ -1,18 +1,15 @@
 /**
  * OpenRouter AI translator
  *
+ * Uses @openrouter/sdk for structured JSON output.
+ *
  * @example
  * ```ts
  * import { createOpenRouterTranslator } from '@sylphx/rosetta-admin/ai';
  *
  * const translator = createOpenRouterTranslator({
  *   apiKey: process.env.OPENROUTER_API_KEY!,
- *   model: 'anthropic/claude-sonnet-4',
- * });
- *
- * export const adminRouter = createAdminRouter({
- *   storage,
- *   translator,
+ *   model: process.env.LLM_MODEL!, // User chooses model
  * });
  * ```
  */
@@ -22,29 +19,15 @@ import type { BatchTranslationItem, TranslateFunction } from '../core/types';
 export interface OpenRouterTranslatorConfig {
 	/** OpenRouter API key */
 	apiKey: string;
-	/** Model to use (default: anthropic/claude-sonnet-4) */
-	model?: string;
-	/** Max items per batch (default: 50) */
+	/** Model to use (e.g., 'anthropic/claude-sonnet-4', 'openai/gpt-4o') */
+	model: string;
+	/** Max items per batch (default: 30) */
 	batchSize?: number;
 	/** Custom system prompt (optional) */
 	systemPrompt?: (locale: string, localeName: string) => string;
 }
 
-interface Message {
-	role: 'system' | 'user' | 'assistant';
-	content: string;
-}
-
-interface OpenRouterResponse {
-	choices: Array<{
-		message: {
-			content: string;
-		};
-	}>;
-}
-
-const DEFAULT_MODEL = 'anthropic/claude-sonnet-4';
-const DEFAULT_BATCH_SIZE = 50;
+const DEFAULT_BATCH_SIZE = 30;
 
 /**
  * Locale code to display name mapping (common languages)
@@ -82,13 +65,6 @@ const LOCALE_NAMES: Record<string, string> = {
 	no: 'Norwegian',
 	hu: 'Hungarian',
 	ro: 'Romanian',
-	sk: 'Slovak',
-	bg: 'Bulgarian',
-	hr: 'Croatian',
-	sl: 'Slovenian',
-	et: 'Estonian',
-	lv: 'Latvian',
-	lt: 'Lithuanian',
 };
 
 function getLocaleName(code: string): string {
@@ -103,26 +79,64 @@ RULES:
 - Keep the same tone and formality level
 - Preserve any placeholders like {name}, {{count}}, %s, %d exactly as-is
 - For technical terms, use standard local terminology
-- Use context (if provided) to disambiguate meaning
-- Return ONLY valid JSON`;
+- Use context (if provided) to disambiguate meaning`;
+}
+
+/**
+ * JSON Schema for batch translation response
+ */
+const translationResponseSchema = {
+	name: 'batch_translation',
+	strict: true,
+	schema: {
+		type: 'object',
+		properties: {
+			translations: {
+				type: 'array',
+				description: 'Array of translated strings',
+				items: {
+					type: 'object',
+					properties: {
+						sourceHash: {
+							type: 'string',
+							description: 'The original source hash',
+						},
+						translatedText: {
+							type: 'string',
+							description: 'The translated text',
+						},
+					},
+					required: ['sourceHash', 'translatedText'],
+					additionalProperties: false,
+				},
+			},
+		},
+		required: ['translations'],
+		additionalProperties: false,
+	},
+} as const;
+
+interface TranslationResponse {
+	translations: Array<{ sourceHash: string; translatedText: string }>;
 }
 
 /**
  * Create an OpenRouter-based translator
+ *
+ * Requires `@openrouter/sdk` as a peer dependency.
  */
 export function createOpenRouterTranslator(config: OpenRouterTranslatorConfig): TranslateFunction {
-	const {
-		apiKey,
-		model = DEFAULT_MODEL,
-		batchSize = DEFAULT_BATCH_SIZE,
-		systemPrompt = defaultSystemPrompt,
-	} = config;
+	const { apiKey, model, batchSize = DEFAULT_BATCH_SIZE, systemPrompt = defaultSystemPrompt } = config;
 
 	return async (items: BatchTranslationItem[], targetLocale: string) => {
 		if (items.length === 0) {
 			return [];
 		}
 
+		// Dynamic import to avoid requiring @openrouter/sdk as a hard dependency
+		const { OpenRouter } = await import('@openrouter/sdk');
+
+		const openRouter = new OpenRouter({ apiKey });
 		const localeName = getLocaleName(targetLocale);
 		const results: Array<{ sourceHash: string; translatedText: string }> = [];
 
@@ -136,58 +150,36 @@ export function createOpenRouterTranslator(config: OpenRouterTranslatorConfig): 
 				...(item.context && { context: item.context }),
 			}));
 
-			const messages: Message[] = [
-				{
-					role: 'system',
-					content: systemPrompt(targetLocale, localeName),
+			const response = await openRouter.chat.send({
+				model,
+				messages: [
+					{
+						role: 'system',
+						content: systemPrompt(targetLocale, localeName),
+					},
+					{
+						role: 'user',
+						content: `Translate these UI strings to ${localeName}:\n\n${JSON.stringify(itemsJson, null, 2)}`,
+					},
+				],
+				temperature: 0.3,
+				responseFormat: {
+					type: 'json_schema',
+					jsonSchema: translationResponseSchema,
 				},
-				{
-					role: 'user',
-					content: `Translate these UI strings to ${localeName}:
-
-${JSON.stringify(itemsJson, null, 2)}
-
-Return a JSON object with "translations" array containing objects with "sourceHash" and "translatedText" for each item.`,
-				},
-			];
-
-			const response = await fetch('https://openrouter.ai/api/v1/chat/completions', {
-				method: 'POST',
-				headers: {
-					'Content-Type': 'application/json',
-					Authorization: `Bearer ${apiKey}`,
-				},
-				body: JSON.stringify({
-					model,
-					messages,
-					temperature: 0.3,
-					response_format: { type: 'json_object' },
-				}),
+				stream: false,
 			});
 
-			if (!response.ok) {
-				const error = await response.text();
-				throw new Error(`OpenRouter API error: ${response.status} - ${error}`);
-			}
-
-			const data = (await response.json()) as OpenRouterResponse;
-			const rawContent = data.choices[0]?.message?.content;
-
+			const rawContent = response.choices[0]?.message?.content;
 			if (!rawContent) {
 				throw new Error('No response content from OpenRouter');
 			}
 
-			// Strip markdown code fences if present (some models ignore response_format)
-			let content = rawContent.trim();
-			if (content.startsWith('```')) {
-				// Remove opening fence (```json or ```)
-				content = content.replace(/^```(?:json)?\s*\n?/, '');
-				// Remove closing fence
-				content = content.replace(/\n?```\s*$/, '');
-			}
+			// Content can be string or array of content items
+			const content = typeof rawContent === 'string' ? rawContent : rawContent[0];
+			const text = typeof content === 'string' ? content : 'text' in content ? content.text : '';
 
-			// Parse JSON response
-			const parsed = JSON.parse(content) as { translations: Array<{ sourceHash: string; translatedText: string }> };
+			const parsed = JSON.parse(text) as TranslationResponse;
 
 			if (parsed.translations && Array.isArray(parsed.translations)) {
 				results.push(...parsed.translations);
