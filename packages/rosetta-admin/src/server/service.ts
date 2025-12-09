@@ -251,7 +251,7 @@ export function createAdminService(config: AdminServiceConfig) {
 
 	/**
 	 * Batch translate using AI
-	 * Server-first: finds untranslated strings from storage
+	 * Server-first: finds untranslated strings from storage or manifest
 	 */
 	async function batchTranslate(request: BatchTranslateRequest): Promise<BatchTranslateResponse> {
 		if (!translator) {
@@ -263,17 +263,37 @@ export function createAdminService(config: AdminServiceConfig) {
 		// Get sources to translate
 		let sources: Array<{ hash: string; text: string; context?: string | null }>;
 
-		if (hashes && hashes.length > 0) {
-			// Specific hashes requested
-			const allSources = await storage.getSources();
-			const hashSet = new Set(hashes);
-			sources = allSources
-				.filter((s) => hashSet.has(s.hash))
-				.map((s) => ({ hash: s.hash, text: s.text, context: s.context }));
+		if (getManifestSources) {
+			// NEW ARCHITECTURE: Sources from manifest
+			const manifestSources = await getManifestSources();
+
+			if (hashes && hashes.length > 0) {
+				// Specific hashes requested
+				const hashSet = new Set(hashes);
+				sources = manifestSources
+					.filter((s) => hashSet.has(s.hash))
+					.map((s) => ({ hash: s.hash, text: s.text, context: s.context }));
+			} else {
+				// Translate all missing - check which ones already have translations
+				const existingTranslations = await storage.getTranslations(locale);
+				sources = manifestSources
+					.filter((s) => !existingTranslations.has(s.hash))
+					.map((s) => ({ hash: s.hash, text: s.text, context: s.context }));
+			}
 		} else {
-			// Translate all missing
-			const untranslated = await storage.getUntranslated(locale);
-			sources = untranslated.map((s) => ({ hash: s.hash, text: s.text, context: s.context }));
+			// OLD ARCHITECTURE: Sources from DB
+			if (hashes && hashes.length > 0) {
+				// Specific hashes requested
+				const allSources = await storage.getSources();
+				const hashSet = new Set(hashes);
+				sources = allSources
+					.filter((s) => hashSet.has(s.hash))
+					.map((s) => ({ hash: s.hash, text: s.text, context: s.context }));
+			} else {
+				// Translate all missing
+				const untranslated = await storage.getUntranslated(locale);
+				sources = untranslated.map((s) => ({ hash: s.hash, text: s.text, context: s.context }));
+			}
 		}
 
 		if (sources.length === 0) {
@@ -335,17 +355,37 @@ export function createAdminService(config: AdminServiceConfig) {
 		let sources: Array<{ hash: string; text: string; context?: string | null }>;
 
 		try {
-			if (hashes && hashes.length > 0) {
-				// Specific hashes requested
-				const allSources = await storage.getSources();
-				const hashSet = new Set(hashes);
-				sources = allSources
-					.filter((s) => hashSet.has(s.hash))
-					.map((s) => ({ hash: s.hash, text: s.text, context: s.context }));
+			if (getManifestSources) {
+				// NEW ARCHITECTURE: Sources from manifest
+				const manifestSources = await getManifestSources();
+
+				if (hashes && hashes.length > 0) {
+					// Specific hashes requested
+					const hashSet = new Set(hashes);
+					sources = manifestSources
+						.filter((s) => hashSet.has(s.hash))
+						.map((s) => ({ hash: s.hash, text: s.text, context: s.context }));
+				} else {
+					// Translate all missing - check which ones already have translations
+					const existingTranslations = await storage.getTranslations(locale);
+					sources = manifestSources
+						.filter((s) => !existingTranslations.has(s.hash))
+						.map((s) => ({ hash: s.hash, text: s.text, context: s.context }));
+				}
 			} else {
-				// Translate all missing
-				const untranslated = await storage.getUntranslated(locale);
-				sources = untranslated.map((s) => ({ hash: s.hash, text: s.text, context: s.context }));
+				// OLD ARCHITECTURE: Sources from DB
+				if (hashes && hashes.length > 0) {
+					// Specific hashes requested
+					const allSources = await storage.getSources();
+					const hashSet = new Set(hashes);
+					sources = allSources
+						.filter((s) => hashSet.has(s.hash))
+						.map((s) => ({ hash: s.hash, text: s.text, context: s.context }));
+				} else {
+					// Translate all missing
+					const untranslated = await storage.getUntranslated(locale);
+					sources = untranslated.map((s) => ({ hash: s.hash, text: s.text, context: s.context }));
+				}
 			}
 		} catch (err) {
 			yield { type: 'error', message: err instanceof Error ? err.message : 'Failed to get sources' };
