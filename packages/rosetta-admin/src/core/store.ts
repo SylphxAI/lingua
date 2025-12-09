@@ -297,8 +297,13 @@ export function createAdminStore(client: AdminAPIClient) {
 					},
 					onTranslation: (sourceHash, translatedText) => {
 						// Update source with new translation
+						// Use getState() to get current state, not captured closure
+						const currentState = getState();
+						const source = currentState.sources.find((s) => s.sourceHash === sourceHash);
+						if (!source) return;
+
 						setState({
-							sources: state.sources.map((s) => {
+							sources: currentState.sources.map((s) => {
 								if (s.sourceHash !== sourceHash) return s;
 								return {
 									...s,
