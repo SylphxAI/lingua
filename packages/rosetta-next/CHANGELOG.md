@@ -1,5 +1,11 @@
 # Changelog
 
+## 1.0.5 (2025-12-09)
+
+### 🐛 Bug Fixes
+
+- **rosetta-next:** robust manifest write with fallback ([8f2ab14](https://github.com/SylphxAI/rosetta/commit/8f2ab14d4ddff1fb1023631589626fdbf1c9c720))
+
 ## 1.0.3 (2025-12-09)
 
 ### 🐛 Bug Fixes
