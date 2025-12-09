@@ -43,7 +43,7 @@ const T_CALL_REGEX = /\bt\s*\(\s*(['"`])(.+?)\1(?:\s*,\s*\{[^}]*\})?\s*\)/g;
 /**
  * Extract strings from a single file's content
  */
-export function extractFromSource(content: string, filename: string): PendingSourceString[] {
+export function extractFromSource(content: string, _filename: string): PendingSourceString[] {
 	const strings: PendingSourceString[] = [];
 	const seen = new Set<string>();
 
@@ -54,8 +54,8 @@ export function extractFromSource(content: string, filename: string): PendingSou
 	while ((match = T_CALL_REGEX.exec(content)) !== null) {
 		const text = match[2];
 
-		// Skip if already seen in this file
-		if (seen.has(text)) continue;
+		// Skip if no match or already seen in this file
+		if (!text || seen.has(text)) continue;
 		seen.add(text);
 
 		// Skip template literals with expressions

@@ -1,11 +1,26 @@
 /**
  * Manifest reader utilities for rosetta-admin
  *
- * Provides robust manifest reading that works in:
- * - Local development
- * - Vercel Serverless (Node.js runtime)
- * - Vercel Edge (via fetch fallback)
- * - Other serverless environments
+ * @deprecated Use TypeScript manifest files instead for better compatibility.
+ *
+ * RECOMMENDED APPROACH:
+ * 1. Generate TypeScript manifest: `rosetta extract -o src/rosetta/manifest.ts`
+ * 2. Import directly in your handlers:
+ *
+ * ```ts
+ * import { manifest } from '@/rosetta/manifest';
+ *
+ * const handlers = createRestHandlers({
+ *   storage,
+ *   getManifestSources: async () => manifest,
+ * });
+ * ```
+ *
+ * This approach:
+ * - Works in ALL environments (Edge, Serverless, Node.js)
+ * - Zero runtime I/O (no fs.readFile, no fetch)
+ * - Type-safe with full IDE support
+ * - Tree-shakeable and optimizable by bundlers
  */
 
 export interface ManifestSource {
@@ -37,8 +52,15 @@ export interface ManifestReaderConfig {
 /**
  * Create a manifest reader function that works in all environments
  *
+ * @deprecated Use TypeScript manifest files with direct imports instead.
+ * See module documentation for recommended approach.
+ *
  * @example
  * ```ts
+ * // DEPRECATED - use TypeScript manifest instead:
+ * // rosetta extract -o src/rosetta/manifest.ts
+ * // import { manifest } from '@/rosetta/manifest';
+ *
  * import { createManifestReader } from '@sylphx/rosetta-admin/server';
  *
  * const getManifestSources = createManifestReader({
