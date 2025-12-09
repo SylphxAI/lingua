@@ -34,37 +34,25 @@
       "name": "@sylphx/rosetta-admin",
       "version": "0.1.1",
       "devDependencies": {
-        "@anthropic-ai/sdk": "^0.39.0",
         "@biomejs/biome": "^2.3.8",
-        "@openrouter/sdk": "^0.2.9",
         "@sylphx/biome-config": "^0.4.1",
         "@sylphx/rosetta": "workspace:*",
         "@trpc/server": "^11.1.0",
         "@types/bun": "^1.1.14",
         "@types/react": "^19",
-        "ai": "^4.0.0",
         "react": "^19.0.0",
         "tsup": "^8.5.1",
         "typescript": "^5",
-        "zod": "^3.24.0",
       },
       "optionalDependencies": {
         "@trpc/server": ">=11.0.0",
       },
       "peerDependencies": {
-        "@anthropic-ai/sdk": ">=0.30.0",
-        "@openrouter/sdk": ">=0.2.0",
         "@sylphx/rosetta": ">=0.1.0",
-        "ai": ">=3.0.0",
         "react": "^18.0.0 || ^19.0.0",
-        "zod": ">=3.0.0",
       },
       "optionalPeers": [
-        "@anthropic-ai/sdk",
-        "@openrouter/sdk",
-        "ai",
         "react",
-        "zod",
       ],
     },
     "packages/rosetta-drizzle": {
@@ -99,6 +87,44 @@
         "@sylphx/rosetta": ">=0.1.0",
         "next": ">=14.0.0",
         "react": "^18.0.0 || ^19.0.0",
+      },
+    },
+    "packages/rosetta-translator-ai-sdk": {
+      "name": "@sylphx/rosetta-translator-ai-sdk",
+      "version": "0.1.0",
+      "devDependencies": {
+        "ai": "^4.0.0",
+        "tsup": "^8.5.1",
+        "typescript": "^5",
+        "zod": "^3.24.0",
+      },
+      "peerDependencies": {
+        "ai": ">=3.0.0",
+        "zod": ">=3.0.0",
+      },
+    },
+    "packages/rosetta-translator-anthropic": {
+      "name": "@sylphx/rosetta-translator-anthropic",
+      "version": "0.1.0",
+      "devDependencies": {
+        "@anthropic-ai/sdk": "^0.39.0",
+        "tsup": "^8.5.1",
+        "typescript": "^5",
+      },
+      "peerDependencies": {
+        "@anthropic-ai/sdk": ">=0.30.0",
+      },
+    },
+    "packages/rosetta-translator-openrouter": {
+      "name": "@sylphx/rosetta-translator-openrouter",
+      "version": "0.1.0",
+      "devDependencies": {
+        "@openrouter/sdk": "^0.2.9",
+        "tsup": "^8.5.1",
+        "typescript": "^5",
+      },
+      "peerDependencies": {
+        "@openrouter/sdk": ">=0.2.0",
       },
     },
   },
@@ -442,6 +468,12 @@
     "@sylphx/rosetta-drizzle": ["@sylphx/rosetta-drizzle@workspace:packages/rosetta-drizzle"],
 
     "@sylphx/rosetta-next": ["@sylphx/rosetta-next@workspace:packages/rosetta-next"],
+
+    "@sylphx/rosetta-translator-ai-sdk": ["@sylphx/rosetta-translator-ai-sdk@workspace:packages/rosetta-translator-ai-sdk"],
+
+    "@sylphx/rosetta-translator-anthropic": ["@sylphx/rosetta-translator-anthropic@workspace:packages/rosetta-translator-anthropic"],
+
+    "@sylphx/rosetta-translator-openrouter": ["@sylphx/rosetta-translator-openrouter@workspace:packages/rosetta-translator-openrouter"],
 
     "@trpc/server": ["@trpc/server@11.7.2", "", { "peerDependencies": { "typescript": ">=5.7.2" } }, "sha512-AgB26PXY69sckherIhCacKLY49rxE2XP5h38vr/KMZTbLCL1p8IuIoKPjALTcugC2kbyQ7Lbqo2JDVfRSmPmfQ=="],
 

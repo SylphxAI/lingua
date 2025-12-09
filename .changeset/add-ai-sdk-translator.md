@@ -1,11 +1,15 @@
 ---
 "@sylphx/rosetta-admin": minor
+"@sylphx/rosetta-translator-ai-sdk": minor
+"@sylphx/rosetta-translator-openrouter": minor
+"@sylphx/rosetta-translator-anthropic": minor
 ---
 
-Improve AI translators with proper SDK support
+Split AI translators into separate packages
 
-- Add createAiSdkTranslator for Vercel AI SDK users (any provider)
-- Update createOpenRouterTranslator to use @openrouter/sdk
-- Update createAnthropicTranslator to use @anthropic-ai/sdk with tool use
-- All translators now require model parameter (no hardcoded defaults)
-- Uses structured output / JSON schema for reliable parsing
+- Remove AI translators from @sylphx/rosetta-admin (now 0 AI deps)
+- Add @sylphx/rosetta-translator-ai-sdk (for Vercel AI SDK users)
+- Add @sylphx/rosetta-translator-openrouter (for OpenRouter SDK users)
+- Add @sylphx/rosetta-translator-anthropic (for Anthropic SDK users)
+
+Each translator is independent - only install what you need.

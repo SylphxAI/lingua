@@ -1,0 +1,36 @@
+{
+	"name": "@sylphx/rosetta-translator-anthropic",
+	"version": "0.1.0",
+	"description": "Anthropic translator for @sylphx/rosetta-admin",
+	"license": "MIT",
+	"type": "module",
+	"exports": {
+		".": {
+			"types": "./dist/index.d.ts",
+			"import": "./dist/index.js"
+		}
+	},
+	"files": ["dist"],
+	"scripts": {
+		"build": "tsup",
+		"dev": "tsup --watch",
+		"typecheck": "tsc --noEmit",
+		"clean": "rm -rf dist"
+	},
+	"peerDependencies": {
+		"@anthropic-ai/sdk": ">=0.30.0"
+	},
+	"devDependencies": {
+		"@anthropic-ai/sdk": "^0.39.0",
+		"tsup": "^8.5.1",
+		"typescript": "^5"
+	},
+	"publishConfig": {
+		"access": "public"
+	},
+	"repository": {
+		"type": "git",
+		"url": "https://github.com/SylphxAI/rosetta.git",
+		"directory": "packages/rosetta-translator-anthropic"
+	}
+}

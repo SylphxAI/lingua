@@ -1,0 +1,36 @@
+{
+	"name": "@sylphx/rosetta-translator-openrouter",
+	"version": "0.1.0",
+	"description": "OpenRouter translator for @sylphx/rosetta-admin",
+	"license": "MIT",
+	"type": "module",
+	"exports": {
+		".": {
+			"types": "./dist/index.d.ts",
+			"import": "./dist/index.js"
+		}
+	},
+	"files": ["dist"],
+	"scripts": {
+		"build": "tsup",
+		"dev": "tsup --watch",
+		"typecheck": "tsc --noEmit",
+		"clean": "rm -rf dist"
+	},
+	"peerDependencies": {
+		"@openrouter/sdk": ">=0.2.0"
+	},
+	"devDependencies": {
+		"@openrouter/sdk": "^0.2.9",
+		"tsup": "^8.5.1",
+		"typescript": "^5"
+	},
+	"publishConfig": {
+		"access": "public"
+	},
+	"repository": {
+		"type": "git",
+		"url": "https://github.com/SylphxAI/rosetta.git",
+		"directory": "packages/rosetta-translator-openrouter"
+	}
+}

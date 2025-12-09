@@ -1,12 +1,12 @@
 /**
- * AI SDK translator
+ * AI SDK translator for @sylphx/rosetta-admin
  *
  * Uses Vercel AI SDK's generateObject for structured translation output.
  * Works with any AI SDK provider (OpenRouter, Anthropic, OpenAI, Google, etc.)
  *
  * @example
  * ```ts
- * import { createAiSdkTranslator } from '@sylphx/rosetta-admin/ai';
+ * import { createAiSdkTranslator } from '@sylphx/rosetta-translator-ai-sdk';
  * import { createOpenRouter } from '@openrouter/ai-sdk-provider';
  *
  * const openrouter = createOpenRouter({
@@ -14,26 +14,27 @@
  * });
  *
  * const translator = createAiSdkTranslator({
- *   model: openrouter(process.env.LLM_MODEL!), // User chooses model
- * });
- * ```
- *
- * @example
- * ```ts
- * // With Anthropic directly
- * import { createAiSdkTranslator } from '@sylphx/rosetta-admin/ai';
- * import { anthropic } from '@ai-sdk/anthropic';
- *
- * const translator = createAiSdkTranslator({
- *   model: anthropic(process.env.ANTHROPIC_MODEL!), // User chooses model
+ *   model: openrouter(process.env.LLM_MODEL!),
  * });
  * ```
  */
 
-import type { BatchTranslationItem, TranslateFunction } from '../core/types';
+import { generateObject } from 'ai';
+import { z } from 'zod';
 
-// Import types only - ai is a peer dependency
-type LanguageModel = Parameters<typeof import('ai').generateObject>[0]['model'];
+// Types (inline to avoid dependency on rosetta-admin)
+export interface BatchTranslationItem {
+	sourceHash: string;
+	sourceText: string;
+	context?: string | null;
+}
+
+export type TranslateFunction = (
+	items: BatchTranslationItem[],
+	targetLocale: string
+) => Promise<Array<{ sourceHash: string; translatedText: string }>>;
+
+type LanguageModel = Parameters<typeof generateObject>[0]['model'];
 
 export interface AiSdkTranslatorConfig {
 	/** AI SDK model instance */
@@ -46,9 +47,6 @@ export interface AiSdkTranslatorConfig {
 
 const DEFAULT_BATCH_SIZE = 30;
 
-/**
- * Locale code to display name mapping (common languages)
- */
 const LOCALE_NAMES: Record<string, string> = {
 	en: 'English',
 	'zh-TW': 'Traditional Chinese',
@@ -73,19 +71,11 @@ const LOCALE_NAMES: Record<string, string> = {
 	pl: 'Polish',
 	tr: 'Turkish',
 	uk: 'Ukrainian',
-	cs: 'Czech',
-	el: 'Greek',
-	he: 'Hebrew',
-	sv: 'Swedish',
-	da: 'Danish',
-	fi: 'Finnish',
-	no: 'Norwegian',
-	hu: 'Hungarian',
-	ro: 'Romanian',
 };
 
 function getLocaleName(code: string): string {
-	return LOCALE_NAMES[code] || LOCALE_NAMES[code.split('-')[0]] || code;
+	const baseCode = code.split('-')[0];
+	return LOCALE_NAMES[code] || (baseCode ? LOCALE_NAMES[baseCode] : undefined) || code;
 }
 
 function defaultSystemPrompt(locale: string, localeName: string): string {
@@ -101,35 +91,27 @@ RULES:
 
 /**
  * Create an AI SDK-based translator
- *
- * Requires `ai` package as a peer dependency.
  */
 export function createAiSdkTranslator(config: AiSdkTranslatorConfig): TranslateFunction {
 	const { model, batchSize = DEFAULT_BATCH_SIZE, systemPrompt = defaultSystemPrompt } = config;
+
+	const BatchTranslationSchema = z.object({
+		translations: z.array(
+			z.object({
+				sourceHash: z.string().describe('The original source hash'),
+				translatedText: z.string().describe('The translated text'),
+			})
+		),
+	});
 
 	return async (items: BatchTranslationItem[], targetLocale: string) => {
 		if (items.length === 0) {
 			return [];
 		}
 
-		// Dynamic import to avoid requiring ai as a hard dependency
-		const { generateObject } = await import('ai');
-		const { z } = await import('zod');
-
 		const localeName = getLocaleName(targetLocale);
 		const results: Array<{ sourceHash: string; translatedText: string }> = [];
 
-		// Schema for batch translation response
-		const BatchTranslationSchema = z.object({
-			translations: z.array(
-				z.object({
-					sourceHash: z.string().describe('The original source hash'),
-					translatedText: z.string().describe('The translated text'),
-				})
-			),
-		});
-
-		// Process in batches
 		for (let i = 0; i < items.length; i += batchSize) {
 			const batch = items.slice(i, i + batchSize);
 
@@ -144,9 +126,7 @@ export function createAiSdkTranslator(config: AiSdkTranslatorConfig): TranslateF
 				schema: BatchTranslationSchema,
 				mode: 'json',
 				system: systemPrompt(targetLocale, localeName),
-				prompt: `Translate these UI strings to ${localeName}:
-
-${JSON.stringify(itemsJson, null, 2)}`,
+				prompt: `Translate these UI strings to ${localeName}:\n\n${JSON.stringify(itemsJson, null, 2)}`,
 				temperature: 0.3,
 			});
 

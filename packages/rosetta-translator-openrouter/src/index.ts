@@ -1,25 +1,37 @@
 /**
- * Anthropic Claude AI translator
+ * OpenRouter translator for @sylphx/rosetta-admin
  *
- * Uses @anthropic-ai/sdk for structured JSON output.
+ * Uses @openrouter/sdk for structured JSON output.
  *
  * @example
  * ```ts
- * import { createAnthropicTranslator } from '@sylphx/rosetta-admin/ai';
+ * import { createOpenRouterTranslator } from '@sylphx/rosetta-translator-openrouter';
  *
- * const translator = createAnthropicTranslator({
- *   apiKey: process.env.ANTHROPIC_API_KEY!,
- *   model: process.env.ANTHROPIC_MODEL!, // User chooses model
+ * const translator = createOpenRouterTranslator({
+ *   apiKey: process.env.OPENROUTER_API_KEY!,
+ *   model: process.env.LLM_MODEL!,
  * });
  * ```
  */
 
-import type { BatchTranslationItem, TranslateFunction } from '../core/types';
+import { OpenRouter } from '@openrouter/sdk';
 
-export interface AnthropicTranslatorConfig {
-	/** Anthropic API key */
+// Types (inline to avoid dependency on rosetta-admin)
+export interface BatchTranslationItem {
+	sourceHash: string;
+	sourceText: string;
+	context?: string | null;
+}
+
+export type TranslateFunction = (
+	items: BatchTranslationItem[],
+	targetLocale: string
+) => Promise<Array<{ sourceHash: string; translatedText: string }>>;
+
+export interface OpenRouterTranslatorConfig {
+	/** OpenRouter API key */
 	apiKey: string;
-	/** Model to use (e.g., 'claude-sonnet-4-20250514', 'claude-3-5-haiku-20241022') */
+	/** Model to use */
 	model: string;
 	/** Max items per batch (default: 30) */
 	batchSize?: number;
@@ -29,9 +41,6 @@ export interface AnthropicTranslatorConfig {
 
 const DEFAULT_BATCH_SIZE = 30;
 
-/**
- * Locale code to display name mapping (common languages)
- */
 const LOCALE_NAMES: Record<string, string> = {
 	en: 'English',
 	'zh-TW': 'Traditional Chinese',
@@ -56,19 +65,11 @@ const LOCALE_NAMES: Record<string, string> = {
 	pl: 'Polish',
 	tr: 'Turkish',
 	uk: 'Ukrainian',
-	cs: 'Czech',
-	el: 'Greek',
-	he: 'Hebrew',
-	sv: 'Swedish',
-	da: 'Danish',
-	fi: 'Finnish',
-	no: 'Norwegian',
-	hu: 'Hungarian',
-	ro: 'Romanian',
 };
 
 function getLocaleName(code: string): string {
-	return LOCALE_NAMES[code] || LOCALE_NAMES[code.split('-')[0]] || code;
+	const baseCode = code.split('-')[0];
+	return LOCALE_NAMES[code] || (baseCode ? LOCALE_NAMES[baseCode] : undefined) || code;
 }
 
 function defaultSystemPrompt(locale: string, localeName: string): string {
@@ -82,13 +83,10 @@ RULES:
 - Use context (if provided) to disambiguate meaning`;
 }
 
-/**
- * JSON Schema for batch translation response
- */
-const translationSchema = {
+const translationResponseSchema = {
 	name: 'batch_translation',
-	description: 'Batch translation result',
-	input_schema: {
+	strict: true,
+	schema: {
 		type: 'object',
 		properties: {
 			translations: {
@@ -97,20 +95,16 @@ const translationSchema = {
 				items: {
 					type: 'object',
 					properties: {
-						sourceHash: {
-							type: 'string',
-							description: 'The original source hash',
-						},
-						translatedText: {
-							type: 'string',
-							description: 'The translated text',
-						},
+						sourceHash: { type: 'string', description: 'The original source hash' },
+						translatedText: { type: 'string', description: 'The translated text' },
 					},
 					required: ['sourceHash', 'translatedText'],
+					additionalProperties: false,
 				},
 			},
 		},
 		required: ['translations'],
+		additionalProperties: false,
 	},
 } as const;
 
@@ -119,26 +113,21 @@ interface TranslationResponse {
 }
 
 /**
- * Create an Anthropic Claude translator
- *
- * Requires `@anthropic-ai/sdk` as a peer dependency.
+ * Create an OpenRouter-based translator
  */
-export function createAnthropicTranslator(config: AnthropicTranslatorConfig): TranslateFunction {
+export function createOpenRouterTranslator(config: OpenRouterTranslatorConfig): TranslateFunction {
 	const { apiKey, model, batchSize = DEFAULT_BATCH_SIZE, systemPrompt = defaultSystemPrompt } = config;
+
+	const openRouter = new OpenRouter({ apiKey });
 
 	return async (items: BatchTranslationItem[], targetLocale: string) => {
 		if (items.length === 0) {
 			return [];
 		}
 
-		// Dynamic import to avoid requiring @anthropic-ai/sdk as a hard dependency
-		const { default: Anthropic } = await import('@anthropic-ai/sdk');
-
-		const anthropic = new Anthropic({ apiKey });
 		const localeName = getLocaleName(targetLocale);
 		const results: Array<{ sourceHash: string; translatedText: string }> = [];
 
-		// Process in batches
 		for (let i = 0; i < items.length; i += batchSize) {
 			const batch = items.slice(i, i + batchSize);
 
@@ -148,27 +137,35 @@ export function createAnthropicTranslator(config: AnthropicTranslatorConfig): Tr
 				...(item.context && { context: item.context }),
 			}));
 
-			const response = await anthropic.messages.create({
+			const response = await openRouter.chat.send({
 				model,
-				max_tokens: 4096,
-				system: systemPrompt(targetLocale, localeName),
-				tools: [translationSchema],
-				tool_choice: { type: 'tool', name: 'batch_translation' },
 				messages: [
+					{ role: 'system', content: systemPrompt(targetLocale, localeName) },
 					{
 						role: 'user',
 						content: `Translate these UI strings to ${localeName}:\n\n${JSON.stringify(itemsJson, null, 2)}`,
 					},
 				],
+				temperature: 0.3,
+				responseFormat: {
+					type: 'json_schema',
+					jsonSchema: translationResponseSchema,
+				},
+				stream: false,
 			});
 
-			// Extract tool use result
-			const toolUse = response.content.find((c) => c.type === 'tool_use');
-			if (!toolUse || toolUse.type !== 'tool_use') {
-				throw new Error('No tool use in Anthropic response');
+			const rawContent = response.choices[0]?.message?.content;
+			if (!rawContent) {
+				throw new Error('No response content from OpenRouter');
 			}
 
-			const parsed = toolUse.input as TranslationResponse;
+			const firstContent = typeof rawContent === 'string' ? rawContent : rawContent[0];
+			if (!firstContent) {
+				throw new Error('Empty response content from OpenRouter');
+			}
+			const text = typeof firstContent === 'string' ? firstContent : 'text' in firstContent ? firstContent.text : '';
+
+			const parsed = JSON.parse(text) as TranslationResponse;
 
 			if (parsed.translations && Array.isArray(parsed.translations)) {
 				results.push(...parsed.translations);
