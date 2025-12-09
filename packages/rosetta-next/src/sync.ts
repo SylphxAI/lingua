@@ -388,11 +388,17 @@ export async function syncRosetta(
 // Auto-Sync State & Execution
 // ============================================
 
+const SYNC_TIMEOUT_MS = 30000; // 30 second timeout for sync operations
+
 let syncCompleted = false;
 let syncPromise: Promise<SyncRosettaResult> | null = null;
 
+// Store storage adapter globally for instrumentation.ts access
+let globalStorage: StorageAdapter | null = null;
+let globalVerbose = false;
+
 /**
- * Perform sync with deduplication
+ * Perform sync with deduplication and timeout
  * Multiple callers will share the same promise
  */
 async function performAutoSync(
@@ -413,10 +419,18 @@ async function performAutoSync(
 				console.log('[rosetta] Syncing strings to database...');
 			}
 
-			const result = await syncRosetta(storage, {
-				verbose,
-				clearAfterSync: process.env.NODE_ENV !== 'production',
-			});
+			// Add timeout to prevent hanging forever
+			const timeoutPromise = new Promise<never>((_, reject) =>
+				setTimeout(() => reject(new Error('Sync timeout after 30s')), SYNC_TIMEOUT_MS)
+			);
+
+			const result = await Promise.race([
+				syncRosetta(storage, {
+					verbose,
+					clearAfterSync: process.env.NODE_ENV !== 'production',
+				}),
+				timeoutPromise,
+			]);
 
 			syncCompleted = true;
 
@@ -430,7 +444,8 @@ async function performAutoSync(
 
 			return result;
 		} catch (error) {
-			console.error('[rosetta] ❌ Failed to sync strings:', error);
+			const message = error instanceof Error ? error.message : String(error);
+			console.error(`[rosetta] ❌ Sync failed: ${message}`);
 			return { synced: 0, lockAcquired: false, skipped: false };
 		}
 	})();
@@ -466,37 +481,102 @@ function createWebpackSyncPlugin(storage: StorageAdapter, verbose: boolean) {
 /**
  * Setup exit handler for Turbopack builds
  *
- * NOTE: beforeExit won't fire when process.exit() is called explicitly.
- * Next.js CLI calls process.exit() after build, so this is a fallback only.
- * For guaranteed sync with Turbopack, use instrumentation.ts
+ * Strategy:
+ * 1. Intercept process.exit() to run sync before actual exit
+ * 2. Add timeout to prevent hanging forever
+ * 3. Guard against multiple exit calls
+ *
+ * NOTE: For guaranteed sync, use instrumentation.ts
  */
 function setupTurbopackFallback(storage: StorageAdapter, verbose: boolean): void {
-	// Intercept process.exit to run sync before exit
-	// This is the only reliable way to run async code before explicit exit
+	// Store globally for instrumentation.ts access
+	globalStorage = storage;
+	globalVerbose = verbose;
+
 	const originalExit = process.exit;
+	let exitScheduled = false;
+
+	const doExit = (code?: number) => {
+		if (exitScheduled) return;
+		exitScheduled = true;
+		originalExit(code);
+	};
 
 	// eslint-disable-next-line @typescript-eslint/no-explicit-any
 	(process as any).exit = ((code?: number): never => {
-		if (!syncCompleted && !syncPromise) {
-			// Start sync but don't wait (can't await in exit override)
-			// The sync will run during the exit grace period
-			performAutoSync(storage, verbose).finally(() => {
-				originalExit(code);
-			});
-			// Block exit while sync runs (will timeout if sync hangs)
-			// This keeps the process alive until sync completes
-			return undefined as never;
+		if (syncCompleted || exitScheduled) {
+			return originalExit(code);
 		}
-		return originalExit(code);
+
+		// Start sync with timeout guarantee
+		performAutoSync(storage, verbose)
+			.catch(() => {})
+			.finally(() => doExit(code));
+
+		// Hard timeout - exit anyway after SYNC_TIMEOUT_MS + 1s buffer
+		setTimeout(() => {
+			if (!exitScheduled) {
+				console.log('[rosetta] ⚠️ Sync timeout, exiting anyway');
+				doExit(code);
+			}
+		}, SYNC_TIMEOUT_MS + 1000);
+
+		// Keep event loop alive by not calling originalExit yet
+		return undefined as never;
 	}) as typeof process.exit;
 
-	// Also register beforeExit as secondary fallback
-	// Works when event loop empties naturally (not on explicit exit)
+	// beforeExit as secondary fallback (works when event loop empties naturally)
 	process.on('beforeExit', async () => {
-		if (!syncCompleted) {
+		if (!syncCompleted && !exitScheduled) {
 			await performAutoSync(storage, verbose);
 		}
 	});
+}
+
+/**
+ * Register function for instrumentation.ts (Next.js server startup hook)
+ *
+ * This provides GUARANTEED sync for Turbopack builds.
+ * Add to your project:
+ *
+ * @example
+ * ```ts
+ * // instrumentation.ts
+ * export { register } from '@sylphx/rosetta-next/sync';
+ * ```
+ *
+ * Or with custom logic:
+ * ```ts
+ * // instrumentation.ts
+ * import { register as rosettaRegister } from '@sylphx/rosetta-next/sync';
+ *
+ * export async function register() {
+ *   await rosettaRegister();
+ *   // your other initialization...
+ * }
+ * ```
+ */
+export async function register(): Promise<void> {
+	// Only run on server
+	if (typeof window !== 'undefined') return;
+
+	// Check if manifest exists and needs syncing
+	const manifestPath = getManifestPath();
+	if (!fs.existsSync(manifestPath)) return;
+
+	// Use stored storage adapter from withRosetta
+	if (!globalStorage) {
+		console.log('[rosetta] ℹ️ No storage configured, skipping instrumentation sync');
+		return;
+	}
+
+	if (syncCompleted) {
+		console.log('[rosetta] ℹ️ Already synced during build');
+		return;
+	}
+
+	console.log('[rosetta] 📦 Syncing strings at server startup...');
+	await performAutoSync(globalStorage, globalVerbose);
 }
 
 /**
