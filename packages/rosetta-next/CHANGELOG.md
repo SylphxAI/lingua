@@ -1,5 +1,11 @@
 # Changelog
 
+## 0.1.20 (2025-12-09)
+
+### 🐛 Bug Fixes
+
+- **rosetta-next:** use process.beforeExit for auto-sync (Turbopack compat) ([707fa5e](https://github.com/SylphxAI/rosetta/commit/707fa5e3392632f8c20316226e1a464d3a4ae0c9))
+
 ## 0.1.19 (2025-12-09)
 
 ### ✨ Features
