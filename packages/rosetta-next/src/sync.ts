@@ -384,29 +384,41 @@ export async function syncRosetta(
 	}
 }
 
-// Track if sync has been scheduled to avoid duplicates
-let syncScheduled = false;
+// ============================================
+// Auto-Sync State & Execution
+// ============================================
+
+let syncCompleted = false;
+let syncPromise: Promise<SyncRosettaResult> | null = null;
 
 /**
- * Schedule auto-sync to run when build process exits
- * Works with both Webpack and Turbopack builds
+ * Perform sync with deduplication
+ * Multiple callers will share the same promise
  */
-function scheduleAutoSync(storage: StorageAdapter, verbose: boolean): void {
-	if (syncScheduled) return;
-	syncScheduled = true;
+async function performAutoSync(
+	storage: StorageAdapter,
+	verbose: boolean
+): Promise<SyncRosettaResult> {
+	if (syncCompleted) {
+		return { synced: 0, lockAcquired: false, skipped: true };
+	}
 
-	// Use beforeExit for async operations (works when event loop is empty)
-	process.on('beforeExit', async () => {
-		if (verbose) {
-			console.log('[rosetta] Build complete, syncing strings to DB...');
-		}
+	if (syncPromise) {
+		return syncPromise;
+	}
 
+	syncPromise = (async () => {
 		try {
+			if (verbose) {
+				console.log('[rosetta] Syncing strings to database...');
+			}
+
 			const result = await syncRosetta(storage, {
 				verbose,
-				// In production builds, preserve manifest for multi-pod safety
 				clearAfterSync: process.env.NODE_ENV !== 'production',
 			});
+
+			syncCompleted = true;
 
 			if (result.synced > 0) {
 				console.log(`[rosetta] ✓ Synced ${result.synced} strings to database`);
@@ -415,9 +427,74 @@ function scheduleAutoSync(storage: StorageAdapter, verbose: boolean): void {
 			} else {
 				console.log('[rosetta] ⏭️ No new strings to sync');
 			}
+
+			return result;
 		} catch (error) {
 			console.error('[rosetta] ❌ Failed to sync strings:', error);
-			// Don't fail the build - sync failure shouldn't block deployment
+			return { synced: 0, lockAcquired: false, skipped: false };
+		}
+	})();
+
+	return syncPromise;
+}
+
+/**
+ * Create webpack plugin for reliable sync
+ * Uses compiler.hooks.done which runs BEFORE process.exit()
+ */
+function createWebpackSyncPlugin(storage: StorageAdapter, verbose: boolean) {
+	return {
+		name: 'RosettaAutoSync',
+		// eslint-disable-next-line @typescript-eslint/no-explicit-any
+		apply(compiler: any) {
+			// 'done' hook runs after compilation finishes, before process exits
+			// This is reliable even when Next.js calls process.exit()
+			compiler.hooks.done.tapPromise(
+				'RosettaAutoSync',
+				// eslint-disable-next-line @typescript-eslint/no-explicit-any
+				async (stats: any) => {
+					// Only sync on successful production server build
+					if (!stats.hasErrors()) {
+						await performAutoSync(storage, verbose);
+					}
+				}
+			);
+		},
+	};
+}
+
+/**
+ * Setup exit handler for Turbopack builds
+ *
+ * NOTE: beforeExit won't fire when process.exit() is called explicitly.
+ * Next.js CLI calls process.exit() after build, so this is a fallback only.
+ * For guaranteed sync with Turbopack, use instrumentation.ts
+ */
+function setupTurbopackFallback(storage: StorageAdapter, verbose: boolean): void {
+	// Intercept process.exit to run sync before exit
+	// This is the only reliable way to run async code before explicit exit
+	const originalExit = process.exit;
+
+	// eslint-disable-next-line @typescript-eslint/no-explicit-any
+	(process as any).exit = ((code?: number): never => {
+		if (!syncCompleted && !syncPromise) {
+			// Start sync but don't wait (can't await in exit override)
+			// The sync will run during the exit grace period
+			performAutoSync(storage, verbose).finally(() => {
+				originalExit(code);
+			});
+			// Block exit while sync runs (will timeout if sync hangs)
+			// This keeps the process alive until sync completes
+			return undefined as never;
+		}
+		return originalExit(code);
+	}) as typeof process.exit;
+
+	// Also register beforeExit as secondary fallback
+	// Works when event loop empties naturally (not on explicit exit)
+	process.on('beforeExit', async () => {
+		if (!syncCompleted) {
+			await performAutoSync(storage, verbose);
 		}
 	});
 }
@@ -456,10 +533,10 @@ export function withRosetta<T extends NextConfig>(
 		}
 	}
 
-	// Schedule auto-sync if storage is provided
-	// This works for both Webpack and Turbopack builds
+	// Setup Turbopack fallback if storage is provided
+	// This intercepts process.exit() to run sync before exit
 	if (storage) {
-		scheduleAutoSync(storage, verbose);
+		setupTurbopackFallback(storage, verbose);
 	}
 
 	return {
@@ -477,17 +554,25 @@ export function withRosetta<T extends NextConfig>(
 				},
 			},
 		},
-		// Add webpack loader (for webpack builds)
+		// Add webpack loader + sync plugin (for webpack builds)
 		// enforce: 'pre' ensures our loader runs before other loaders (e.g., babel, swc)
 		webpack: (
 			config: { module: { rules: unknown[] }; plugins: unknown[] },
-			context: { isServer: boolean }
+			context: { isServer: boolean; dev: boolean }
 		) => {
+			// Add loader for string extraction
 			config.module.rules.push({
 				test: /\.(ts|tsx)$/,
 				enforce: 'pre',
 				use: [loaderPath],
 			});
+
+			// Add sync plugin for production server builds
+			// Uses compiler.hooks.done which is reliable (runs before process.exit)
+			if (storage && context.isServer && !context.dev) {
+				config.plugins = config.plugins ?? [];
+				config.plugins.push(createWebpackSyncPlugin(storage, verbose));
+			}
 
 			if (nextConfig.webpack) {
 				return nextConfig.webpack(config, context);
