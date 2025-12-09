@@ -323,9 +323,14 @@ function writeManifestAtomic(): void {
 		const tempPath = `${manifestPath}.tmp`;
 		const routesTempPath = `${routesPath}.tmp`;
 
-		// Ensure directory exists
-		if (!fs.existsSync(manifestDir)) {
+		// Ensure directory exists (always create, don't check first)
+		try {
 			fs.mkdirSync(manifestDir, { recursive: true });
+		} catch (e) {
+			// Ignore EEXIST, throw others
+			if ((e as NodeJS.ErrnoException).code !== 'EEXIST') {
+				throw e;
+			}
 		}
 
 		// Read existing manifest to merge
@@ -412,13 +417,25 @@ function writeManifestAtomic(): void {
 			finalRoutes[route] = Array.from(mergedRoutes[route]).sort();
 		}
 
-		// Write manifest.json (temp file + atomic rename)
-		fs.writeFileSync(tempPath, JSON.stringify(data, null, 2));
-		fs.renameSync(tempPath, manifestPath);
+		// Write manifest.json (temp file + atomic rename, fallback to direct write)
+		const manifestJson = JSON.stringify(data, null, 2);
+		try {
+			fs.writeFileSync(tempPath, manifestJson);
+			fs.renameSync(tempPath, manifestPath);
+		} catch {
+			// Fallback: write directly if atomic rename fails
+			fs.writeFileSync(manifestPath, manifestJson);
+		}
 
-		// Write routes.json (temp file + atomic rename)
-		fs.writeFileSync(routesTempPath, JSON.stringify(finalRoutes, null, 2));
-		fs.renameSync(routesTempPath, routesPath);
+		// Write routes.json (temp file + atomic rename, fallback to direct write)
+		const routesJson = JSON.stringify(finalRoutes, null, 2);
+		try {
+			fs.writeFileSync(routesTempPath, routesJson);
+			fs.renameSync(routesTempPath, routesPath);
+		} catch {
+			// Fallback: write directly if atomic rename fails
+			fs.writeFileSync(routesPath, routesJson);
+		}
 
 		// Clear collected state after successful write
 		collectedStrings.clear();
