@@ -1,5 +1,21 @@
 # Changelog
 
+## 0.3.1 (2025-12-10)
+
+Simplify to CLI-based manifest extraction, remove createManifestReader
+
+### 🐛 Bug Fixes
+
+- sync package versions with npm ([e2637db](https://github.com/SylphxAI/rosetta/commit/e2637dbd931da825edcbf8d01f945851da1ffde7))
+
+### ♻️ Refactoring
+
+- simplify to CLI-based manifest extraction ([bae3c39](https://github.com/SylphxAI/rosetta/commit/bae3c399ef9c85c6b458cfc83c34a337a0a8b7a0))
+
+### ⏪ Reverts
+
+- remove manual version bumps (CI handles releases) ([f3d9b06](https://github.com/SylphxAI/rosetta/commit/f3d9b06e1a45028fa83a311b7caed543ae41d67e))
+
 ## 0.2.0 (2025-12-09)
 
 ### ✨ Features
