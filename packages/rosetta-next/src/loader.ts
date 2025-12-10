@@ -1,23 +1,11 @@
 /**
- * Rosetta Turbopack/Webpack Loader
+ * @deprecated Use CLI extraction instead of webpack loader.
  *
- * Extracts t() calls from source files during build.
- * Writes extracted strings to public/rosetta/manifest.json
- *
- * Features:
- * - Atomic writes (temp file + rename)
- * - Debounced writes (100ms) to batch multiple file changes
- * - Hash collision detection
- * - Sorted output for deterministic diffs
- * - Configurable manifest path via ROSETTA_MANIFEST_DIR env var
- * - Context-aware hashing (matches runtime behavior)
- * - ReDoS-safe regex patterns
- *
- * Usage in next.config.ts:
- * ```ts
- * import { withRosetta } from '@sylphx/rosetta-next/sync';
- * export default withRosetta(nextConfig);
- * ```
+ * Migration:
+ * 1. Remove withRosetta from next.config.ts
+ * 2. Add to package.json scripts:
+ *    "build": "rosetta extract -o src/rosetta/manifest.ts && next build"
+ * 3. Import manifest directly in your admin handlers
  */
 
 import fs from 'node:fs';

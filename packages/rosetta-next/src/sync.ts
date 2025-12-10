@@ -1,17 +1,25 @@
 /**
- * Rosetta Next.js Plugin
+ * @deprecated Use CLI extraction instead of webpack loader.
  *
- * Adds loader to extract strings during build and write them to manifest.
- * The manifest is shipped with your app in public/rosetta/manifest.json.
+ * The webpack/turbopack loader approach is deprecated in favor of
+ * CLI-based extraction which works better with Edge runtime.
  *
- * NO database sync needed - sources are served as static files!
+ * Migration:
+ * 1. Remove withRosetta from next.config.ts
+ * 2. Add to package.json scripts:
+ *    "build": "rosetta extract -o src/rosetta/manifest.ts && next build"
+ * 3. Import manifest directly in your admin handlers
  *
  * @example
  * ```ts
- * // next.config.ts
+ * // Before (deprecated):
  * import { withRosetta } from '@sylphx/rosetta-next/sync';
- *
  * export default withRosetta(nextConfig);
+ *
+ * // After:
+ * // 1. package.json: "build": "rosetta extract -o src/rosetta/manifest.ts && next build"
+ * // 2. In admin handler:
+ * import { manifest } from '@/rosetta/manifest';
  * ```
  */
 
@@ -52,18 +60,7 @@ export interface RosettaPluginOptions {
 type NextConfig = Record<string, any>;
 
 /**
- * Create a Next.js config with Rosetta loader integration
- *
- * Adds loaders to extract strings during build and write them to
- * public/rosetta/manifest.json which is shipped with your app.
- *
- * @example
- * ```ts
- * // next.config.ts
- * import { withRosetta } from '@sylphx/rosetta-next/sync';
- *
- * export default withRosetta(nextConfig);
- * ```
+ * @deprecated Use CLI extraction instead. See module docs for migration guide.
  */
 export function withRosetta<T extends NextConfig>(
 	nextConfig: T,

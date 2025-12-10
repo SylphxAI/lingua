@@ -1,29 +1,24 @@
 /**
  * REST API handlers for translation admin
- * For use with Next.js API routes, Express, or any Node.js server
  *
- * @example Next.js App Router
+ * Works with Edge runtime - no fs.readFile needed.
+ *
+ * @example Next.js App Router (Edge compatible)
  * ```ts
- * // app/api/admin/translations/route.ts
+ * // 1. Generate manifest in build script:
+ * //    "build": "rosetta extract -o src/rosetta/manifest.ts && next build"
+ *
+ * // 2. app/api/admin/translations/route.ts
  * import { createRestHandlers } from '@sylphx/rosetta-admin/server';
+ * import { manifest } from '@/rosetta/manifest';
  * import { storage } from '@/lib/rosetta';
- * import { createOpenRouterTranslator } from '@sylphx/rosetta-admin/ai';
  *
  * const handlers = createRestHandlers({
  *   storage,
- *   translator: createOpenRouterTranslator({
- *     apiKey: process.env.OPENROUTER_API_KEY!,
- *   }),
+ *   getManifestSources: async () => manifest,
  * });
  *
- * export const GET = handlers.GET;
- * export const PUT = handlers.PUT;
- * export const PATCH = handlers.PATCH;
- * ```
- *
- * ```ts
- * // app/api/admin/translations/batch/route.ts
- * export const POST = handlers.batchTranslate;
+ * export const { GET, PUT, PATCH } = handlers;
  * ```
  */
 
