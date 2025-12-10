@@ -24,6 +24,8 @@ interface CLIOptions {
 	exclude?: string[];
 	/** Output file for JSON or TypeScript */
 	output?: string;
+	/** Watch mode - re-extract on file changes */
+	watch?: boolean;
 }
 
 function parseArgs(args: string[]): { command: string; options: CLIOptions } {
@@ -51,6 +53,8 @@ function parseArgs(args: string[]): { command: string; options: CLIOptions } {
 			if (pattern) options.exclude.push(pattern);
 		} else if (arg === '--output' || arg === '-o') {
 			options.output = args[++i];
+		} else if (arg === '--watch' || arg === '-w') {
+			options.watch = true;
 		}
 	}
 
@@ -107,6 +111,7 @@ Options:
   --root, -r <path>      Root directory to scan (default: cwd)
   --format, -f <format>  Output format: json, ts, table, silent (default: table)
   --output, -o <file>    Output to file (format inferred from extension if not set)
+  --watch, -w            Watch mode - re-extract on file changes
   --verbose, -v          Show verbose output
   --dry-run, -d          Don't save to storage, just show results
   --include, -i <glob>   Include pattern (can be used multiple times)
@@ -115,31 +120,23 @@ Options:
 Examples:
   rosetta extract
   rosetta extract --root ./src --verbose
-  rosetta extract --format json > strings.json
-  rosetta extract -o public/rosetta/manifest.json
-  rosetta extract -f ts -o src/rosetta/manifest.ts
+  rosetta extract -o src/rosetta/manifest.ts
+  rosetta extract -o src/rosetta/manifest.ts --watch
 `);
 }
 
-async function runExtract(options: CLIOptions): Promise<void> {
-	const { root, verbose, include, exclude, output } = options;
-	let { format = 'table' } = options;
-
-	// Infer format from output file extension if not explicitly set
-	if (output && format === 'table') {
-		if (output.endsWith('.ts')) {
-			format = 'ts';
-		} else if (output.endsWith('.json')) {
-			format = 'json';
-		}
-	}
-
-	if (verbose) {
-		console.log('Extracting strings...\n');
-	}
+async function doExtract(options: {
+	root: string;
+	verbose?: boolean;
+	include?: string[];
+	exclude?: string[];
+	output?: string;
+	format: 'json' | 'ts' | 'table' | 'silent';
+}): Promise<number> {
+	const { root, verbose, include, exclude, output, format } = options;
 
 	const result = await extract({
-		root: root || process.cwd(),
+		root,
 		verbose,
 		include,
 		exclude,
@@ -153,7 +150,7 @@ async function runExtract(options: CLIOptions): Promise<void> {
 				: JSON.stringify(result.strings, null, 2);
 
 		await Bun.write(output, content);
-		console.log(`Extracted ${result.strings.length} strings to ${output}`);
+		console.log(`[rosetta] Extracted ${result.strings.length} strings to ${output}`);
 	} else if (format === 'json') {
 		console.log(JSON.stringify(result.strings, null, 2));
 	} else if (format === 'ts') {
@@ -170,7 +167,89 @@ async function runExtract(options: CLIOptions): Promise<void> {
 			}
 		}
 	}
-	// silent format: no output
+
+	return result.strings.length;
+}
+
+async function runExtract(options: CLIOptions): Promise<void> {
+	const { root = process.cwd(), verbose, include, exclude, output, watch } = options;
+	let { format = 'table' } = options;
+
+	// Infer format from output file extension if not explicitly set
+	if (output && format === 'table') {
+		if (output.endsWith('.ts')) {
+			format = 'ts';
+		} else if (output.endsWith('.json')) {
+			format = 'json';
+		}
+	}
+
+	if (verbose) {
+		console.log('Extracting strings...\n');
+	}
+
+	// Initial extraction
+	await doExtract({ root, verbose, include, exclude, output, format });
+
+	// Watch mode
+	if (watch) {
+		if (!output) {
+			console.error('[rosetta] --watch requires --output to be set');
+			process.exit(1);
+		}
+
+		console.log('[rosetta] Watching for changes... (Ctrl+C to stop)');
+
+		const { watch: fsWatch } = await import('fs');
+
+		// Debounce to avoid multiple rapid extractions
+		let debounceTimer: ReturnType<typeof setTimeout> | null = null;
+		const DEBOUNCE_MS = 100;
+
+		const patterns = include ?? ['**/*.tsx', '**/*.ts', '**/*.jsx', '**/*.js'];
+		const excludePatterns = exclude ?? [
+			'**/node_modules/**',
+			'**/.next/**',
+			'**/dist/**',
+			'**/*.d.ts',
+		];
+
+		// Watch the root directory recursively
+		fsWatch(root, { recursive: true }, (_eventType, filename) => {
+			if (!filename) return;
+
+			// Check if file matches include patterns
+			const matchesInclude = patterns.some((pattern) => {
+				const glob = new Bun.Glob(pattern);
+				return glob.match(filename);
+			});
+
+			if (!matchesInclude) return;
+
+			// Check if file matches exclude patterns
+			const matchesExclude = excludePatterns.some((pattern) => {
+				const glob = new Bun.Glob(pattern);
+				return glob.match(filename);
+			});
+
+			if (matchesExclude) return;
+
+			// Skip the output file itself
+			if (output && filename.endsWith(output.split('/').pop() || '')) return;
+
+			// Debounce
+			if (debounceTimer) clearTimeout(debounceTimer);
+			debounceTimer = setTimeout(async () => {
+				if (verbose) {
+					console.log(`[rosetta] Change detected: ${filename}`);
+				}
+				await doExtract({ root, verbose: false, include, exclude, output, format });
+			}, DEBOUNCE_MS);
+		});
+
+		// Keep the process running
+		await new Promise(() => {});
+	}
 }
 
 async function main(): Promise<void> {
