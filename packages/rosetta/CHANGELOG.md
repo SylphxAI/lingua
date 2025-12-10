@@ -1,5 +1,21 @@
 # Changelog
 
+## 0.5.1 (2025-12-10)
+
+Add --watch mode for CLI extraction
+
+### ✨ Features
+
+- **cli:** add --watch mode for dev hot reload ([894ad62](https://github.com/SylphxAI/rosetta/commit/894ad62adb148db6ecdb5129af9388ac39ad53e0))
+
+### 🐛 Bug Fixes
+
+- sync package versions with npm ([e2637db](https://github.com/SylphxAI/rosetta/commit/e2637dbd931da825edcbf8d01f945851da1ffde7))
+
+### ⏪ Reverts
+
+- remove manual version bumps (CI handles releases) ([f3d9b06](https://github.com/SylphxAI/rosetta/commit/f3d9b06e1a45028fa83a311b7caed543ae41d67e))
+
 ## 0.4.0 (2025-12-09)
 
 ### ✨ Features

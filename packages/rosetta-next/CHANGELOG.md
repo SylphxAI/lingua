@@ -1,5 +1,17 @@
 # Changelog
 
+## 0.3.1 (2025-12-10)
+
+Deprecate withRosetta in favor of CLI extraction
+
+### 🐛 Bug Fixes
+
+- sync package versions with npm ([e2637db](https://github.com/SylphxAI/rosetta/commit/e2637dbd931da825edcbf8d01f945851da1ffde7))
+
+### ⏪ Reverts
+
+- remove manual version bumps (CI handles releases) ([f3d9b06](https://github.com/SylphxAI/rosetta/commit/f3d9b06e1a45028fa83a311b7caed543ae41d67e))
+
 ## 0.2.0 (2025-12-09)
 
 ### ✨ Features
