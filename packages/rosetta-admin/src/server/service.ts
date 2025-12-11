@@ -460,12 +460,12 @@ export function createAdminService(config: AdminServiceConfig) {
 	}
 
 	return {
-		getActiveLocales,
-		fetchTranslations,
-		saveTranslation,
-		markAsReviewed,
-		batchTranslate,
-		batchTranslateStream,
+		getActiveLocales: getActiveLocales,
+		fetchTranslations: fetchTranslations,
+		saveTranslation: saveTranslation,
+		markAsReviewed: markAsReviewed,
+		batchTranslate: batchTranslate,
+		batchTranslateStream: batchTranslateStream,
 	};
 }
 

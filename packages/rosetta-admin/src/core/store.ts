@@ -428,27 +428,27 @@ export function createAdminStore(client: AdminAPIClient) {
 
 	return {
 		// State
-		getState,
-		subscribe,
+		getState: getState,
+		subscribe: subscribe,
 
 		// Computed
-		getFilteredSources,
-		getLocaleProgress,
-		getOutdatedCount,
-		getUntranslatedSources,
+		getFilteredSources: getFilteredSources,
+		getLocaleProgress: getLocaleProgress,
+		getOutdatedCount: getOutdatedCount,
+		getUntranslatedSources: getUntranslatedSources,
 
 		// Actions
-		fetchData,
-		enterEditor,
-		exitEditor,
-		setSearchQuery,
-		setStatusFilter,
-		setEditingHash,
-		saveTranslation,
-		markAsReviewed,
-		batchTranslate,
-		addLocale,
-		removeLocale,
+		fetchData: fetchData,
+		enterEditor: enterEditor,
+		exitEditor: exitEditor,
+		setSearchQuery: setSearchQuery,
+		setStatusFilter: setStatusFilter,
+		setEditingHash: setEditingHash,
+		saveTranslation: saveTranslation,
+		markAsReviewed: markAsReviewed,
+		batchTranslate: batchTranslate,
+		addLocale: addLocale,
+		removeLocale: removeLocale,
 	};
 }
 
