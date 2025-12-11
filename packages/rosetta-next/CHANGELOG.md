@@ -1,5 +1,12 @@
 # Changelog
 
+## 0.3.4 (2025-12-11)
+
+### 🐛 Bug Fixes
+
+- use sed -i.bak for cross-platform compatibility ([64b839c](https://github.com/SylphxAI/rosetta/commit/64b839c8a810c473dd6e72f94e4c15c4c2ebdb6f))
+- **rosetta,rosetta-next:** strip node:module from Edge-compatible bundles ([f3be5b0](https://github.com/SylphxAI/rosetta/commit/f3be5b00c58d1efbf38da902a2235723dbb3da56))
+
 ## 0.3.3 (2025-12-11)
 
 ### 🐛 Bug Fixes
