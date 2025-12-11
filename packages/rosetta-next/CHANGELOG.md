@@ -1,5 +1,11 @@
 # Changelog
 
+## 0.3.3 (2025-12-11)
+
+### 🐛 Bug Fixes
+
+- **rosetta-next:** disable code splitting for Turbopack compatibility ([85dc492](https://github.com/SylphxAI/rosetta/commit/85dc4921f42acca3dd6f413c24371d2981f04b5a))
+
 ## 0.3.2 (2025-12-10)
 
 ### 🐛 Bug Fixes
