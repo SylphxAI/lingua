@@ -279,10 +279,11 @@ export interface NextCacheOptions {
  */
 export function createNextCacheLoader(
 	storage: { getTranslations: (locale: string) => Promise<Map<string, string>> },
-	options: NextCacheOptions = {}
+	// eslint-disable-next-line @typescript-eslint/no-unused-vars
+	_options: NextCacheOptions = {}
 ): (locale: string) => Promise<Map<string, string>> {
-	const revalidate = options.revalidate ?? 60;
-	const tags = options.tags ?? ['rosetta-translations'];
+	// Note: options.revalidate and options.tags need to be applied in user code
+	// via unstable_cache wrapper. We can't import next/cache here.
 
 	// Return a function that can be wrapped by Next.js cache
 	return async (locale: string): Promise<Map<string, string>> => {

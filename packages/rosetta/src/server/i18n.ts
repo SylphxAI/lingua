@@ -9,7 +9,6 @@ import type {
 	TranslationStats,
 } from '../types';
 import {
-	assertValidBatchSize,
 	assertValidContext,
 	assertValidHash,
 	assertValidLocale,

@@ -96,6 +96,7 @@ function filePathToRoute(filePath: string): string | null {
 	}
 
 	const relativePath = appMatch[1];
+	if (!relativePath) return null;
 
 	// Only process route files (page, layout, template, loading, error, not-found)
 	const routeFiles = ['page', 'layout', 'template', 'loading', 'error', 'not-found', 'default'];
@@ -152,7 +153,7 @@ function getAssociatedRoutes(filePath: string): string[] {
 	const normalized = filePath.replace(/\\/g, '/');
 	const appMatch = normalized.match(/\/app\/(.+)$/);
 
-	if (!appMatch) {
+	if (!appMatch || !appMatch[1]) {
 		// Outside app directory - could be used anywhere
 		// Return special marker for "global" strings
 		return ['_shared'];
@@ -412,7 +413,8 @@ function writeManifestAtomic(): void {
 		const finalRoutes: Record<string, string[]> = {};
 		const sortedRouteKeys = Object.keys(mergedRoutes).sort();
 		for (const route of sortedRouteKeys) {
-			finalRoutes[route] = Array.from(mergedRoutes[route]).sort();
+			const routeSet = mergedRoutes[route];
+			finalRoutes[route] = routeSet ? Array.from(routeSet).sort() : [];
 		}
 
 		// Write manifest.json (temp file + atomic rename, fallback to direct write)

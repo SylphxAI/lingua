@@ -36,7 +36,7 @@ export interface AdminServiceConfig {
 
 export interface AdminService {
 	getActiveLocales: () => Promise<string[]>;
-	fetchTranslations: (locale: string) => Promise<FetchTranslationsResponse>;
+	fetchTranslations: () => Promise<FetchTranslationsResponse>;
 	saveTranslation: (data: SaveTranslationRequest) => Promise<void>;
 	markAsReviewed: (data: MarkAsReviewedRequest) => Promise<void>;
 	batchTranslate: (data: BatchTranslateRequest) => Promise<BatchTranslateResponse>;

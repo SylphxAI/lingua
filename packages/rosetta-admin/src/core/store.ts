@@ -21,16 +21,16 @@ export interface AdminStore {
 	getFilteredSources: () => SourceEntry[];
 	getLocaleProgress: (locale: string) => number;
 	getOutdatedCount: (locale: string) => number;
-	getUntranslatedSources: (locale: string) => SourceEntry[];
+	getUntranslatedSources: () => SourceEntry[];
 	fetchData: () => Promise<void>;
 	enterEditor: (locale: string) => void;
 	exitEditor: () => void;
 	setSearchQuery: (query: string) => void;
 	setStatusFilter: (filter: StatusFilter) => void;
 	setEditingHash: (hash: string | null) => void;
-	saveTranslation: (hash: string, text: string) => Promise<void>;
-	markAsReviewed: (hash: string) => Promise<void>;
-	batchTranslate: (locale: string, hashes: string[]) => Promise<void>;
+	saveTranslation: (hash: string, text: string, locale?: string) => Promise<void>;
+	markAsReviewed: (hash: string, locale?: string) => Promise<void>;
+	batchTranslate: (locale?: string, hashes?: string[]) => Promise<void>;
 	addLocale: (locale: string) => Promise<void>;
 	removeLocale: (locale: string) => Promise<void>;
 }

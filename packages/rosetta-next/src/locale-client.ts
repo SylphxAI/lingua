@@ -139,8 +139,8 @@ export function setLocaleCookie(locale: string, options: SetLocaleCookieOptions 
 export function getLocaleCookie(cookieName: string = LOCALE_COOKIE_NAME): string | undefined {
 	if (typeof document === 'undefined') return undefined;
 
-	const cookies = document.cookie.split(';').map((c) => c.trim());
-	const localeCookie = cookies.find((c) => c.startsWith(`${cookieName}=`));
+	const cookies = document.cookie.split(';').map((c: string) => c.trim());
+	const localeCookie = cookies.find((c: string) => c.startsWith(`${cookieName}=`));
 
 	if (!localeCookie) return undefined;
 

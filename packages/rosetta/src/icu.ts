@@ -280,7 +280,7 @@ function formatICU(
  *
  * @internal
  */
-function findClosingBrace(text: string, start: number, depth: number): number {
+function findClosingBrace(text: string, start: number, _depth: number): number {
 	let braceCount = 1;
 	let braceDepth = 1;
 	let i = start;
