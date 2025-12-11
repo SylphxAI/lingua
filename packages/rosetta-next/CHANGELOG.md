@@ -1,5 +1,16 @@
 # Changelog
 
+## 0.3.6 (2025-12-11)
+
+### 🐛 Bug Fixes
+
+- resolve TypeScript type errors and exclude test files from typecheck ([46f3222](https://github.com/SylphxAI/rosetta/commit/46f32221b9c22fa82b73c37dd63880aa85c754fe))
+- resolve biome lint errors ([619969b](https://github.com/SylphxAI/rosetta/commit/619969b119a2827e54d327c5bc907f585c81b442))
+
+### 💅 Styles
+
+- format package.json files ([f26787d](https://github.com/SylphxAI/rosetta/commit/f26787d55f657f22eb764651104feb775f7a98db))
+
 ## 0.3.5 (2025-12-11)
 
 ### 🐛 Bug Fixes
