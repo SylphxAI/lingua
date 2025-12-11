@@ -34,7 +34,8 @@
 		"dist"
 	],
 	"scripts": {
-		"build": "bunup src/index.ts --dts --format esm,cjs && bunup src/server/index.ts src/adapters/index.ts src/icu.ts src/cli/index.ts --dts --clean=false --splitting=false",
+		"build": "bunup src/index.ts --dts --format esm,cjs && bunup src/server/index.ts src/adapters/index.ts src/icu.ts src/cli/index.ts --dts --clean=false --splitting=false && bun run build:fix",
+		"build:fix": "find dist -name '*.js' -exec sed -i '' '/^import { createRequire } from \"node:module\";$/d' {} \\; && find dist -name '*.js' -exec sed -i '' '/^var __require = \\/\\* @__PURE__ \\*\\/ createRequire(import.meta.url);$/d' {} \\;",
 		"dev": "bunup src/index.ts src/server/index.ts src/adapters/index.ts src/icu.ts --dts --watch",
 		"test": "bun test",
 		"typecheck": "tsc --noEmit",
