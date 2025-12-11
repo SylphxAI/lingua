@@ -1,5 +1,11 @@
 # Changelog
 
+## 0.3.5 (2025-12-11)
+
+### 📦 Dependencies
+
+- Updated `@sylphx/rosetta` to 0.5.5
+
 ## 0.3.4 (2025-12-11)
 
 ### 📦 Dependencies
