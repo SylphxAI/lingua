@@ -1,6 +1,6 @@
 import { AsyncLocalStorage } from 'node:async_hooks';
 import { hashText } from '../hash';
-import { createPluralRulesCache, formatMessage, type PluralRulesCache } from '../icu';
+import { type PluralRulesCache, createPluralRulesCache, formatMessage } from '../icu';
 import { DEFAULT_LOCALE } from '../locales';
 import type { RosettaContext, TranslateOptions } from '../types';
 

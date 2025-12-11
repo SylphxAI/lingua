@@ -110,7 +110,7 @@ function filePathToRoute(filePath: string): string | null {
 	}
 
 	// Extract route path
-	let route = '/' + relativePath;
+	let route = `/${relativePath}`;
 
 	// Remove file extension and route file name
 	route = route.replace(
@@ -164,7 +164,7 @@ function getAssociatedRoutes(filePath: string): string[] {
 
 	// Walk up to find route
 	while (parts.length > 0) {
-		const testPath = '/app/' + parts.join('/') + '/page.tsx';
+		const testPath = `/app/${parts.join('/')}/page.tsx`;
 		const route = filePathToRoute(testPath);
 		if (route) {
 			return [route];
@@ -206,14 +206,15 @@ function extractStrings(source: string): ManifestEntry[] {
 
 	// First pass: t() calls with options (may have context)
 	T_CALL_WITH_OPTIONS_REGEX.lastIndex = 0;
-	let match: RegExpExecArray | null;
+	let match: RegExpExecArray | null = T_CALL_WITH_OPTIONS_REGEX.exec(source);
 
-	while ((match = T_CALL_WITH_OPTIONS_REGEX.exec(source)) !== null) {
+	while (match !== null) {
 		const text = match[2];
 		const optionsStr = match[3];
 
 		// Skip template expressions or empty
 		if (!text || text.includes('${') || !text.trim()) {
+			match = T_CALL_WITH_OPTIONS_REGEX.exec(source);
 			continue;
 		}
 
@@ -229,33 +230,39 @@ function extractStrings(source: string): ManifestEntry[] {
 		// Create unique key for deduplication
 		const key = context ? `${context}::${text}` : text;
 		if (seen.has(key)) {
+			match = T_CALL_WITH_OPTIONS_REGEX.exec(source);
 			continue;
 		}
 
 		seen.add(key);
 		const hash = hashText(text, context);
 		strings.push({ text, hash, context });
+		match = T_CALL_WITH_OPTIONS_REGEX.exec(source);
 	}
 
 	// Second pass: simple t() calls without options
 	T_CALL_SIMPLE_REGEX.lastIndex = 0;
+	match = T_CALL_SIMPLE_REGEX.exec(source);
 
-	while ((match = T_CALL_SIMPLE_REGEX.exec(source)) !== null) {
+	while (match !== null) {
 		const text = match[2];
 
 		// Skip template expressions or empty
 		if (!text || text.includes('${') || !text.trim()) {
+			match = T_CALL_SIMPLE_REGEX.exec(source);
 			continue;
 		}
 
 		// Skip if already seen (from options pass)
 		if (seen.has(text)) {
+			match = T_CALL_SIMPLE_REGEX.exec(source);
 			continue;
 		}
 
 		seen.add(text);
 		const hash = hashText(text);
 		strings.push({ text, hash });
+		match = T_CALL_SIMPLE_REGEX.exec(source);
 	}
 
 	return strings;
@@ -471,7 +478,7 @@ interface LoaderContext {
  * Tracks source file for each string to enable page-level optimization.
  * The manifest includes route mappings for automatic per-page loading.
  */
-export default function rosettaLoader(this: LoaderContext | void, source: string): string {
+export default function rosettaLoader(this: LoaderContext | undefined, source: string): string {
 	// Get the file path from loader context (webpack/turbopack provide this)
 	const resourcePath = (this as LoaderContext)?.resourcePath || '';
 
@@ -566,7 +573,7 @@ export function readRoutes(): Record<string, string[]> {
 export function getHashesForRoute(route: string): string[] {
 	const routes = readRoutes();
 	const routeHashes = routes[route] || [];
-	const sharedHashes = routes['_shared'] || [];
+	const sharedHashes = routes._shared || [];
 
 	// Combine and deduplicate
 	return [...new Set([...routeHashes, ...sharedHashes])];

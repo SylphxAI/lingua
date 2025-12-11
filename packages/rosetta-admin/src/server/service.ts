@@ -3,7 +3,7 @@
  * Works with any StorageAdapter from @sylphx/rosetta
  */
 
-import { hashText, type StorageAdapter } from '@sylphx/rosetta';
+import { type StorageAdapter, hashText } from '@sylphx/rosetta';
 import type {
 	BatchStreamEvent,
 	BatchTranslateRequest,
@@ -85,7 +85,7 @@ export function createAdminService(config: AdminServiceConfig): AdminService {
 			{ text: string | null; sourceHash?: string | null; translatedFrom?: string | null } | null
 		>
 	): string {
-		const enOverride = translations['en']?.text;
+		const enOverride = translations.en?.text;
 		return enOverride || codeText;
 	}
 

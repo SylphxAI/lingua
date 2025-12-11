@@ -53,7 +53,7 @@ afterEach(() => {
 	cleanupTestDir();
 
 	// Reset env
-	delete process.env.ROSETTA_MANIFEST_DIR;
+	process.env.ROSETTA_MANIFEST_DIR = undefined;
 });
 
 // ============================================
@@ -78,7 +78,7 @@ describe('rosettaLoader', () => {
 		});
 
 		test('extracts t() calls with template literals', () => {
-			const source = `const msg = t(\`Static text\`);`;
+			const source = 'const msg = t(`Static text`);';
 
 			rosettaLoader(source);
 			flushManifest();
@@ -336,9 +336,9 @@ describe('loader security', () => {
 import {
 	filePathToRoute,
 	getAssociatedRoutes,
-	readRoutes,
 	getHashesForRoute,
 	getRoutesPath,
+	readRoutes,
 } from '../loader';
 
 describe('route detection', () => {

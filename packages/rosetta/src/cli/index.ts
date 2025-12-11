@@ -200,7 +200,7 @@ async function runExtract(options: CLIOptions): Promise<void> {
 
 		console.log('[rosetta] Watching for changes... (Ctrl+C to stop)');
 
-		const { watch: fsWatch } = await import('fs');
+		const { watch: fsWatch } = await import('node:fs');
 
 		// Debounce to avoid multiple rapid extractions
 		let debounceTimer: ReturnType<typeof setTimeout> | null = null;

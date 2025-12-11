@@ -271,12 +271,10 @@ export const initialAdminState: AdminState = {
 /**
  * Translation function for AI batch translation
  */
-export interface TranslateFunction {
-	(
-		items: BatchTranslationItem[],
-		targetLocale: string
-	): Promise<Array<{ sourceHash: string; translatedText: string }>>;
-}
+export type TranslateFunction = (
+	items: BatchTranslationItem[],
+	targetLocale: string
+) => Promise<Array<{ sourceHash: string; translatedText: string }>>;
 
 /**
  * Callback for streaming batch translation events

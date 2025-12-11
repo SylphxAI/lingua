@@ -50,22 +50,32 @@ export function extractFromSource(content: string, _filename: string): PendingSo
 	// Reset regex state
 	T_CALL_REGEX.lastIndex = 0;
 
-	let match: RegExpExecArray | null;
-	while ((match = T_CALL_REGEX.exec(content)) !== null) {
+	let match: RegExpExecArray | null = T_CALL_REGEX.exec(content);
+	while (match !== null) {
 		const text = match[2];
 
 		// Skip if no match or already seen in this file
-		if (!text || seen.has(text)) continue;
+		if (!text || seen.has(text)) {
+			match = T_CALL_REGEX.exec(content);
+			continue;
+		}
 		seen.add(text);
 
 		// Skip template literals with expressions
-		if (text.includes('${')) continue;
+		if (text.includes('${')) {
+			match = T_CALL_REGEX.exec(content);
+			continue;
+		}
 
 		// Skip empty strings
-		if (!text.trim()) continue;
+		if (!text.trim()) {
+			match = T_CALL_REGEX.exec(content);
+			continue;
+		}
 
 		const hash = hashText(text);
 		strings.push({ text, hash });
+		match = T_CALL_REGEX.exec(content);
 	}
 
 	return strings;

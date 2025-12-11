@@ -115,7 +115,7 @@ export function createPluralRulesCache(options?: PluralRulesCacheOptions): Plura
  */
 export function getPluralCategory(
 	count: number,
-	locale: string = 'en',
+	locale = 'en',
 	cache?: PluralRulesCache
 ): Intl.LDMLPluralRule {
 	// Fallback for environments without Intl
@@ -177,24 +177,25 @@ export function formatMessage(
 	if (!params) return text;
 
 	// Safety: Limit text length
-	if (text.length > MAX_TEXT_LENGTH) {
+	let safeText = text;
+	if (safeText.length > MAX_TEXT_LENGTH) {
 		options?.onError?.(new Error(`Text exceeds ${MAX_TEXT_LENGTH} characters`), 'formatMessage');
-		text = text.slice(0, MAX_TEXT_LENGTH);
+		safeText = safeText.slice(0, MAX_TEXT_LENGTH);
 	}
 
 	// Check for ICU patterns
-	if (text.includes(', plural,') || text.includes(', select,')) {
+	if (safeText.includes(', plural,') || safeText.includes(', select,')) {
 		try {
-			return formatICU(text, params, 0, options);
+			return formatICU(safeText, params, 0, options);
 		} catch (error) {
 			options?.onError?.(error as Error, 'formatICU');
 			// Fallback to simple interpolation
-			return interpolate(text, params);
+			return interpolate(safeText, params);
 		}
 	}
 
 	// Simple interpolation
-	return interpolate(text, params);
+	return interpolate(safeText, params);
 }
 
 /**

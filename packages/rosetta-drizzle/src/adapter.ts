@@ -186,8 +186,7 @@ export class DrizzleStorageAdapter<
 		for (const col of requiredColumns) {
 			if (!(col in table)) {
 				throw new Error(
-					`[rosetta-drizzle] ${name} table missing required column: ${col}. ` +
-						`Use createRosettaSchema() from @sylphx/rosetta-drizzle/schema to create compatible tables.`
+					`[rosetta-drizzle] ${name} table missing required column: ${col}. Use createRosettaSchema() from @sylphx/rosetta-drizzle/schema to create compatible tables.`
 				);
 			}
 		}
