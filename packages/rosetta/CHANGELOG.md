@@ -1,5 +1,11 @@
 # Changelog
 
+## 0.5.5 (2025-12-11)
+
+### 🐛 Bug Fixes
+
+- **rosetta,rosetta-next:** use --target browser for Edge-compatible entries ([78a54fb](https://github.com/SylphxAI/rosetta/commit/78a54fb00a5146655a880626b97be93ad732b4a0))
+
 ## 0.5.4 (2025-12-11)
 
 ### 🐛 Bug Fixes
