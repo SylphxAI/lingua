@@ -56,7 +56,8 @@ export interface RosettaPluginOptions {
 }
 
 // Use permissive types for NextConfig to avoid conflicts with Next.js types
-type NextConfig = Record<string, unknown>;
+// biome-ignore lint/suspicious/noExplicitAny: Next.js config is inherently untyped
+type NextConfig = Record<string, any>;
 
 /**
  * @deprecated Use CLI extraction instead. See module docs for migration guide.

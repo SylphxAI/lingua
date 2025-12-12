@@ -81,6 +81,7 @@
       "name": "@sylphx/rosetta-next",
       "version": "0.4.0",
       "devDependencies": {
+        "@sylphx/rosetta": "workspace:*",
         "@types/node": "^22",
         "@types/react": "^19",
         "bunup": "^0.16.10",

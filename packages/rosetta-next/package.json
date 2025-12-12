@@ -43,6 +43,7 @@
 		"react": "^18.0.0 || ^19.0.0"
 	},
 	"devDependencies": {
+		"@sylphx/rosetta": "workspace:*",
 		"@types/node": "^22",
 		"@types/react": "^19",
 		"bunup": "^0.16.10",
