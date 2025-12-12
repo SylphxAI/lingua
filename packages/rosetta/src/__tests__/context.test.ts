@@ -63,7 +63,7 @@ describe('isInsideRosettaContext', () => {
 	});
 
 	it('returns true when inside context', () => {
-		let result: boolean = false;
+		let result = false;
 		runWithRosetta(
 			{
 				locale: 'en',
@@ -338,7 +338,9 @@ describe('t() function - additional cases', () => {
 	});
 
 	it('handles ICU plural in non-default locale', () => {
-		const translations = new Map([['a1b2c3d4', '{count, plural, one {# 個項目} other {# 個項目}}']]);
+		const translations = new Map([
+			['a1b2c3d4', '{count, plural, one {# 個項目} other {# 個項目}}'],
+		]);
 
 		runWithRosetta(
 			{

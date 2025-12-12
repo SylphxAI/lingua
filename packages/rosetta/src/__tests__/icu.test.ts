@@ -295,11 +295,15 @@ describe('formatMessage - error handling', () => {
 	it('truncates text exceeding max length', () => {
 		const longText = 'a'.repeat(MAX_TEXT_LENGTH + 100);
 		let errorCalled = false;
-		const result = formatMessage(longText, { x: 1 }, {
-			onError: () => {
-				errorCalled = true;
-			},
-		});
+		const result = formatMessage(
+			longText,
+			{ x: 1 },
+			{
+				onError: () => {
+					errorCalled = true;
+				},
+			}
+		);
 		expect(errorCalled).toBe(true);
 		expect(result.length).toBe(MAX_TEXT_LENGTH);
 	});
@@ -308,11 +312,15 @@ describe('formatMessage - error handling', () => {
 		let errorMessage = '';
 		// Malformed ICU pattern - unclosed brace
 		const template = '{count, plural, one {item}';
-		formatMessage(template, { count: 1 }, {
-			onError: (err) => {
-				errorMessage = err.message;
-			},
-		});
+		formatMessage(
+			template,
+			{ count: 1 },
+			{
+				onError: (err) => {
+					errorMessage = err.message;
+				},
+			}
+		);
 		// Should fall back to interpolation without crashing
 		expect(template).toContain('plural');
 	});
@@ -337,11 +345,15 @@ describe('formatMessage - security', () => {
 		}
 
 		let errorCalled = false;
-		formatMessage(nested, { x: 'a' }, {
-			onError: () => {
-				errorCalled = true;
-			},
-		});
+		formatMessage(
+			nested,
+			{ x: 'a' },
+			{
+				onError: () => {
+					errorCalled = true;
+				},
+			}
+		);
 
 		// Should either error or handle gracefully
 		expect(typeof errorCalled).toBe('boolean');

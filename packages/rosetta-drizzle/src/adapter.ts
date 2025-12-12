@@ -36,7 +36,8 @@ import { type Column, type SQL, and, eq, inArray, notInArray, sql } from 'drizzl
 /**
  * Column type constraint - ensures the column exists
  */
-type AnyColumn = Column<any, object, object>; // eslint-disable-line @typescript-eslint/no-explicit-any
+// biome-ignore lint/suspicious/noExplicitAny: drizzle Column type requires any for generic constraint
+type AnyColumn = Column<any, object, object>;
 
 /**
  * Required columns for sources table

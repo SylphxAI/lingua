@@ -8,9 +8,9 @@ import { describe, expect, it } from 'bun:test';
 import {
 	ExternalCache,
 	InMemoryCache,
+	type RedisLikeClient,
 	RequestScopedCache,
 	createNextCacheLoader,
-	type RedisLikeClient,
 } from '../cache';
 
 // ============================================
@@ -35,7 +35,10 @@ describe('InMemoryCache', () => {
 
 	it('stores and retrieves translations', async () => {
 		const cache = new InMemoryCache();
-		const translations = new Map([['h1', 'Hello'], ['h2', 'World']]);
+		const translations = new Map([
+			['h1', 'Hello'],
+			['h2', 'World'],
+		]);
 		await cache.set('en', translations);
 
 		const result = await cache.get('en');
@@ -194,7 +197,10 @@ describe('ExternalCache', () => {
 		const redis = createMockRedis();
 		const cache = new ExternalCache(redis);
 
-		const translations = new Map([['h1', 'Hello'], ['h2', 'World']]);
+		const translations = new Map([
+			['h1', 'Hello'],
+			['h2', 'World'],
+		]);
 		await cache.set('en', translations);
 
 		const result = await cache.get('en');
@@ -249,7 +255,7 @@ describe('ExternalCache', () => {
 
 	it('handles invalidate when keys() not available', async () => {
 		const redis = createMockRedis();
-		delete (redis as Partial<typeof redis>).keys;
+		(redis as Partial<typeof redis>).keys = undefined;
 		const cache = new ExternalCache(redis);
 
 		await cache.set('en', new Map([['h1', 'Hello']]));

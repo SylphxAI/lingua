@@ -8,7 +8,7 @@
  */
 
 import { beforeEach, describe, expect, it } from 'bun:test';
-import { InMemoryCache, type CacheAdapter } from '../cache';
+import { type CacheAdapter, InMemoryCache } from '../cache';
 import { Rosetta } from '../server/i18n';
 import type { SourceString, SourceWithStatus, StorageAdapter, TranslateAdapter } from '../types';
 
@@ -604,9 +604,9 @@ describe('Rosetta.batchTranslate() edge cases', () => {
 		const storage = createFullMockStorage();
 		const rosetta = new Rosetta({ storage, defaultLocale: 'en' });
 
-		await expect(
-			rosetta.batchTranslate([{ hash: 'h1', text: 'Hello' }], 'zh-TW')
-		).rejects.toThrow('No translator adapter configured');
+		await expect(rosetta.batchTranslate([{ hash: 'h1', text: 'Hello' }], 'zh-TW')).rejects.toThrow(
+			'No translator adapter configured'
+		);
 	});
 
 	it('falls back to parallel translation when batch fails', async () => {

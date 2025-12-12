@@ -52,7 +52,8 @@ function createTestDb() {
 function createAdapter() {
 	const { db, sqlite } = createTestDb();
 	const adapter = new DrizzleStorageAdapter({
-		db: db as any, // SQLite db type differs slightly from generic DrizzleQueryBuilder
+		// biome-ignore lint/suspicious/noExplicitAny: SQLite db type differs slightly from generic DrizzleQueryBuilder
+		db: db as any,
 		sources: sqliteRosettaSources,
 		translations: sqliteRosettaTranslations,
 	});
@@ -392,7 +393,9 @@ describe('DrizzleStorageAdapter Validation', () => {
 
 		expect(() => {
 			new DrizzleStorageAdapter({
+				// biome-ignore lint/suspicious/noExplicitAny: testing invalid table schema
 				db: db as any,
+				// biome-ignore lint/suspicious/noExplicitAny: testing invalid table schema
 				sources: invalidTable as any,
 				translations: sqliteRosettaTranslations,
 			});
@@ -414,8 +417,10 @@ describe('DrizzleStorageAdapter Validation', () => {
 
 		expect(() => {
 			new DrizzleStorageAdapter({
+				// biome-ignore lint/suspicious/noExplicitAny: testing invalid table schema
 				db: db as any,
 				sources: sqliteRosettaSources,
+				// biome-ignore lint/suspicious/noExplicitAny: testing invalid table schema
 				translations: invalidTable as any,
 			});
 		}).toThrow(/missing required column/);

@@ -413,6 +413,7 @@ describe('route manifest', () => {
 		process.env.ROSETTA_MANIFEST_DIR = '.rosetta-test';
 
 		// Simulate loader being called with file context
+		// biome-ignore lint/suspicious/noExplicitAny: webpack loader context mock
 		const loaderWithContext = rosettaLoader.bind({
 			resourcePath: '/project/app/products/page.tsx',
 		} as any);
@@ -421,6 +422,7 @@ describe('route manifest', () => {
 			const y = t('Add to Cart');
 		`);
 
+		// biome-ignore lint/suspicious/noExplicitAny: webpack loader context mock
 		const homeLoader = rosettaLoader.bind({
 			resourcePath: '/project/app/page.tsx',
 		} as any);
@@ -453,12 +455,14 @@ describe('route manifest', () => {
 		process.env.ROSETTA_MANIFEST_DIR = '.rosetta-test';
 
 		// Simulate shared component
+		// biome-ignore lint/suspicious/noExplicitAny: webpack loader context mock
 		const sharedLoader = rosettaLoader.bind({
 			resourcePath: '/project/src/components/Header.tsx',
 		} as any);
 		sharedLoader(`t('Navigation')`);
 
 		// Route-specific
+		// biome-ignore lint/suspicious/noExplicitAny: webpack loader context mock
 		const pageLoader = rosettaLoader.bind({
 			resourcePath: '/project/app/about/page.tsx',
 		} as any);
