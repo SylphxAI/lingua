@@ -7,7 +7,7 @@
 
 import { buildLocaleChain } from '@sylphx/rosetta';
 import type { ReactNode } from 'react';
-import { getTranslationsForClient, runWithRosetta } from './server/context';
+import { runWithRosetta } from './server/context';
 import type { Rosetta } from './server/rosetta';
 
 // Re-export locale utilities
