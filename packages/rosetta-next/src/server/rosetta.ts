@@ -22,7 +22,12 @@ import {
 	isValidLocale,
 } from '@sylphx/rosetta';
 import { cache } from 'react';
-import { type TranslateFunction, createTranslator, translationsToRecord } from './context';
+import {
+	type TranslateFunction,
+	createTranslator,
+	getRequestLocale,
+	translationsToRecord,
+} from './context';
 
 /**
  * Locale detector function type
@@ -135,10 +140,18 @@ export class Rosetta {
 	 * This is the primary API for server components. Uses React's cache()
 	 * to deduplicate translation loading within a single request.
 	 *
-	 * @example
+	 * @example With explicit locale
 	 * export default async function Page({ params }) {
 	 *   const { locale } = await params
 	 *   const t = await rosetta.getTranslations(locale)
+	 *   return <h1>{t("Welcome")}</h1>
+	 * }
+	 *
+	 * @example Without locale (requires setRequestLocale in layout)
+	 * // In layout: setRequestLocale(locale)
+	 * // In page:
+	 * export default async function Page() {
+	 *   const t = await rosetta.getTranslations()  // Uses request locale
 	 *   return <h1>{t("Welcome")}</h1>
 	 * }
 	 *
@@ -149,8 +162,15 @@ export class Rosetta {
 	 * @example With context
 	 * t("Save", { context: "button" }) // Different hash for disambiguation
 	 */
-	getTranslations(locale: string): Promise<TranslateFunction> {
-		return this._getTranslations(locale);
+	getTranslations(locale?: string): Promise<TranslateFunction> {
+		const resolvedLocale = locale ?? getRequestLocale();
+		if (!resolvedLocale) {
+			throw new Error(
+				'[rosetta] No locale provided and setRequestLocale() was not called. ' +
+					'Either pass locale explicitly or call setRequestLocale(locale) in your layout.'
+			);
+		}
+		return this._getTranslations(resolvedLocale);
 	}
 
 	/**

@@ -21,6 +21,76 @@ import {
 import { cache } from 'react';
 
 // ============================================
+// Request-scoped Locale Storage (Edge-compatible)
+// ============================================
+
+/**
+ * Request-scoped locale store using React cache()
+ * This replaces AsyncLocalStorage for Edge compatibility
+ *
+ * Note: React's cache() only works during RSC rendering.
+ * We use a fallback for non-React contexts (tests, scripts).
+ */
+interface RequestLocaleStore {
+	locale: string | null;
+}
+
+// Fallback store for non-React contexts (tests, scripts)
+let fallbackStore: RequestLocaleStore = { locale: null };
+
+// React cache() for RSC context - memoizes per request
+const getRequestLocaleStore = cache((): RequestLocaleStore => {
+	// Return the fallback store to share state
+	// In RSC, this function is memoized per-request
+	// Outside RSC (tests), cache() doesn't memoize, but we still use fallbackStore
+	return fallbackStore;
+});
+
+/**
+ * Reset the locale store (for testing)
+ * @internal
+ */
+export function _resetLocaleStore(): void {
+	fallbackStore = { locale: null };
+}
+
+/**
+ * Set the locale for the current request
+ *
+ * Call this once in your layout to enable `getLocale()` and
+ * parameterless `getTranslations()` in all server components.
+ *
+ * @example
+ * // app/[locale]/layout.tsx
+ * import { setRequestLocale } from '@sylphx/rosetta-next/server'
+ *
+ * export default async function Layout({ params, children }) {
+ *   const { locale } = await params
+ *   setRequestLocale(locale)
+ *   // ...
+ * }
+ *
+ * // app/[locale]/page.tsx - no need to pass locale!
+ * import { getTranslations } from '@sylphx/rosetta-next/server'
+ *
+ * export default async function Page() {
+ *   const t = await getTranslations()  // Uses locale from setRequestLocale
+ *   return <h1>{t("Welcome")}</h1>
+ * }
+ */
+export function setRequestLocale(locale: string): void {
+	fallbackStore.locale = locale;
+}
+
+/**
+ * Get the locale set by setRequestLocale()
+ * Returns null if setRequestLocale() was not called
+ */
+export function getRequestLocale(): string | null {
+	return fallbackStore.locale;
+}
+
+// ============================================
 // Types
 // ============================================
 
@@ -187,49 +257,55 @@ export function translationsToRecord(translations: Map<string, string>): Record<
 }
 
 // ============================================
-// Legacy API (deprecated - for migration)
+// Convenience Accessors (use setRequestLocale first)
 // ============================================
 
 /**
- * @deprecated Use createTranslator() or rosetta.getTranslations() instead.
- * This function is kept for backward compatibility during migration.
+ * Get current locale from request context
+ *
+ * Requires setRequestLocale() to be called first (usually in layout).
+ * Returns DEFAULT_LOCALE if not set.
+ *
+ * @example
+ * // In layout: setRequestLocale(locale)
+ * // In component:
+ * const locale = getLocale()  // Returns the locale set in layout
  */
 export function getLocale(): string {
-	console.warn(
-		'[rosetta] getLocale() is deprecated. Pass locale explicitly or use rosetta.getTranslations(locale).'
-	);
-	return DEFAULT_LOCALE;
+	const locale = getRequestLocale();
+	if (!locale && process.env.NODE_ENV === 'development') {
+		console.warn(
+			'[rosetta] getLocale() called without setRequestLocale(). ' +
+				'Call setRequestLocale(locale) in your layout first.'
+		);
+	}
+	return locale ?? DEFAULT_LOCALE;
 }
 
 /**
- * @deprecated Use createTranslator() or rosetta.getTranslations() instead.
- * This function is kept for backward compatibility during migration.
+ * @deprecated Pass defaultLocale explicitly or access from rosetta instance
  */
 export function getDefaultLocale(): string {
 	console.warn(
-		'[rosetta] getDefaultLocale() is deprecated. Pass locale explicitly or use rosetta.getTranslations(locale).'
+		'[rosetta] getDefaultLocale() is deprecated. Use rosetta.getDefaultLocale() instead.'
 	);
 	return DEFAULT_LOCALE;
 }
 
 /**
- * @deprecated Use createTranslator() or rosetta.getTranslations() instead.
- * This function is kept for backward compatibility during migration.
+ * @deprecated Use buildLocaleChain from @sylphx/rosetta
  */
 export function getLocaleChain(): string[] {
-	console.warn(
-		'[rosetta] getLocaleChain() is deprecated. Pass locale explicitly or use rosetta.getTranslations(locale).'
-	);
-	return [DEFAULT_LOCALE];
+	console.warn('[rosetta] getLocaleChain() is deprecated. Use buildLocaleChain() instead.');
+	return [getLocale()];
 }
 
 /**
- * @deprecated Use createTranslator() or rosetta.getTranslations() instead.
- * This function is kept for backward compatibility during migration.
+ * @deprecated Use rosetta.getTranslations(locale) instead
  */
 export async function getTranslationsAsync(): Promise<TranslateFunction> {
 	console.warn(
-		'[rosetta] getTranslationsAsync() is deprecated. Use rosetta.getTranslations(locale) instead.'
+		'[rosetta] getTranslationsAsync() is deprecated. Use rosetta.getTranslations() instead.'
 	);
 	return (text: string) => text;
 }

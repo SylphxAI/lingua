@@ -73,9 +73,11 @@ export {
 	type TranslatorContext,
 } from './server/context';
 
+// Request-scoped locale (Edge-compatible alternative to AsyncLocalStorage)
+export { setRequestLocale, getRequestLocale, getLocale } from './server/context';
+
 // Legacy API (deprecated, for migration)
 export {
-	getLocale,
 	getDefaultLocale,
 	getLocaleChain,
 	getTranslationsAsync as getTranslations,

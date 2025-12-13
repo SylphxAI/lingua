@@ -1,34 +1,9 @@
-minor: remove AsyncLocalStorage for true Edge Runtime compatibility
-
-BREAKING CHANGES:
-- Removed `runWithRosetta` function (use `rosetta.getTranslations(locale)` instead)
-- Removed `rosettaStorage` export (AsyncLocalStorage no longer used)
-- `getClientData()` now requires explicit locale parameter
-- `getLocale()`, `getDefaultLocale()`, `getLocaleChain()` are deprecated (pass locale explicitly)
-- `RosettaProvider` is now a passthrough component (deprecated, use `RosettaClientProvider` directly)
+minor: add setRequestLocale for implicit locale passing (like next-intl)
 
 NEW API:
-- `rosetta.getTranslations(locale)` - Returns cached translation function (uses React cache())
-- `rosetta.getClientData(locale)` - Get client hydration data
-- `createTranslator(ctx)` - Create a translation function from context
-- `translationsToRecord(translations)` - Convert Map to Record
+- `setRequestLocale(locale)` - Set locale once in layout, use everywhere
+- `getRequestLocale()` - Get the set locale
+- `rosetta.getTranslations()` - Now works without locale param if setRequestLocale was called
 
-Migration:
-```tsx
-// Before (with AsyncLocalStorage)
-<RosettaProvider rosetta={rosetta} locale={locale}>
-  <RosettaClientProvider {...clientData}>
-    {children}
-  </RosettaClientProvider>
-</RosettaProvider>
-
-// After (Edge-compatible)
-const clientData = await rosetta.getClientData(locale)
-<RosettaClientProvider {...clientData}>
-  {children}
-</RosettaClientProvider>
-
-// Server components
-const t = await rosetta.getTranslations(locale)
-return <h1>{t("Welcome")}</h1>
-```
+This provides a similar DX to next-intl while remaining Edge-compatible.
+No need to pass locale through every component anymore.
