@@ -1,5 +1,11 @@
 # Changelog
 
+## 0.4.3 (2025-12-13)
+
+### ♻️ Refactoring
+
+- **rosetta-next:** remove AsyncLocalStorage for Edge Runtime compatibility ([2dd8b10](https://github.com/SylphxAI/rosetta/commit/2dd8b10e2c0d4c682622e1866ac269adcb937b9a))
+
 ## 0.4.2 (2025-12-13)
 
 ### 🐛 Bug Fixes
