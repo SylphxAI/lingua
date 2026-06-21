@@ -321,4 +321,3 @@ export function getLocale(): string {
 	}
 	return locale ?? DEFAULT_LOCALE;
 }
-

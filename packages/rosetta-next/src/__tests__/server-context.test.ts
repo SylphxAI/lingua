@@ -6,6 +6,7 @@
 
 import { beforeEach, describe, expect, test } from 'bun:test';
 import {
+	type TranslatorContext,
 	_resetLocaleStore,
 	_setTestLocale,
 	createTranslator,
@@ -14,7 +15,6 @@ import {
 	setRequestLocale,
 	t,
 	translationsToRecord,
-	type TranslatorContext,
 } from '../server/context';
 
 // Reset locale store before each test to ensure isolation

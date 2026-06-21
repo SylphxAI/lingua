@@ -115,9 +115,9 @@ export function RosettaClientProvider({
 				// Key insight: if 'params' is present and is an object, it's TranslateOptions
 				const isTranslateOptions =
 					paramsOrOptions &&
-					('params' in paramsOrOptions &&
-						typeof paramsOrOptions.params === 'object' &&
-						paramsOrOptions.params !== null);
+					'params' in paramsOrOptions &&
+					typeof paramsOrOptions.params === 'object' &&
+					paramsOrOptions.params !== null;
 
 				let context: string | undefined;
 				let params: Record<string, string | number> | undefined;

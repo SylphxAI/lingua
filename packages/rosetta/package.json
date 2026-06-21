@@ -22,9 +22,7 @@
 	"bin": {
 		"rosetta": "./dist/cli/index.js"
 	},
-	"files": [
-		"dist"
-	],
+	"files": ["dist"],
 	"scripts": {
 		"build": "bunup src/index.ts --dts --format esm,cjs --target browser && bunup src/icu.ts --dts --clean=false --splitting=false --target browser && bunup src/cli/index.ts --dts --clean=false --splitting=false --target node --out-dir dist/cli",
 		"dev": "bunup src/index.ts src/icu.ts src/cli/index.ts --dts --watch",
