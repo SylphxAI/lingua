@@ -49,8 +49,8 @@
  * ```
  */
 
+import { LOCALE_COOKIE_MAX_AGE, LOCALE_COOKIE_NAME } from './locale-constants';
 import type { Rosetta } from './server/rosetta';
-import { LOCALE_COOKIE_NAME, LOCALE_COOKIE_MAX_AGE } from './locale-constants';
 
 // ============================================
 // Types

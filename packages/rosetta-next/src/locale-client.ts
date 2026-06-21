@@ -30,8 +30,8 @@
 // ============================================
 
 // Import for local use and re-export (single source of truth)
-import { LOCALE_COOKIE_NAME, LOCALE_COOKIE_MAX_AGE } from './locale-constants';
-export { LOCALE_COOKIE_NAME, LOCALE_COOKIE_MAX_AGE };
+import { LOCALE_COOKIE_MAX_AGE, LOCALE_COOKIE_NAME } from './locale-constants';
+export { LOCALE_COOKIE_MAX_AGE, LOCALE_COOKIE_NAME };
 
 // ============================================
 // Types
