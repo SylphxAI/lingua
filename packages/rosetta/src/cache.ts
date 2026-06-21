@@ -26,12 +26,14 @@
  * ```
  */
 
+import type { CacheAdapter } from './types';
+
 // ============================================
 // Cache Interface
 // ============================================
 
 // Re-export CacheAdapter from types.ts (single source of truth)
-export type { CacheAdapter } from './types';
+export type { CacheAdapter };
 
 // ============================================
 // In-Memory Cache (Traditional Server)

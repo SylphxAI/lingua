@@ -24,7 +24,7 @@
 		"build:fix": "find dist -name '*.js' -exec sed -i.bak 's/jsx-dev-runtime/jsx-runtime/g; s/jsxDEV/jsx/g' {} \\; && find dist -name '*.bak' -delete",
 		"dev": "bunup src/index.tsx src/server.tsx --format esm --dts --external react --external @sylphx/rosetta --watch",
 		"test": "bun test",
-		"typecheck": "tsc --noEmit && tsc --noEmit -p tsconfig.node.json",
+		"typecheck": "tsc --noEmit",
 		"clean": "rm -rf dist"
 	},
 	"peerDependencies": {
