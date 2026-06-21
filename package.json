@@ -3,7 +3,9 @@
 	"private": true,
 	"workspaces": ["packages/*"],
 	"scripts": {
-		"build": "bun run --filter '*' build",
+		"build": "bun run build:core && bun run build:packages",
+		"build:core": "bun run --filter '@sylphx/rosetta' build",
+		"build:packages": "bun run --filter '@sylphx/rosetta-admin' build && bun run --filter '@sylphx/rosetta-next' build && bun run --filter '@sylphx/rosetta-drizzle' build && bun run --filter '@sylphx/rosetta-translator-ai-sdk' build && bun run --filter '@sylphx/rosetta-translator-anthropic' build && bun run --filter '@sylphx/rosetta-translator-openrouter' build",
 		"dev": "bun run --filter '*' dev",
 		"test": "bun run --filter '*' test",
 		"lint": "biome check .",
@@ -21,7 +23,7 @@
 		"typescript": "^5.7.2",
 		"vitepress": "^1.5.0"
 	},
-	"packageManager": "bun@1.1.38",
+	"packageManager": "bun@1.3.14",
 	"dependencies": {
 		"bunup": "^0.16.10"
 	}
