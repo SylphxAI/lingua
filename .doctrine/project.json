@@ -1,0 +1,163 @@
+{
+	"schemaVersion": 1,
+	"project": {
+		"repo": "SylphxAI/rosetta",
+		"name": "rosetta",
+		"lifecycle": "active",
+		"layer": "foundation",
+		"summary": "Foundation i18n library family for source string collection, translation workflows, framework adapters, database helpers, documentation, tests, and release automation.",
+		"goals": [
+			"Provide a lightweight, typed i18n library with source string collection and translation workflows.",
+			"Keep core package exports, Next.js/admin/database/translator adapters, docs, and tests coherent as one library family.",
+			"Publish only documented package exports and adapter contracts to consumers."
+		],
+		"nonGoals": [
+			"Own consumer application copy, translation policy, localization operations, or provider availability.",
+			"Own enterprise doctrine, project manifest schema, org rulesets, rollout issue reconciliation, or shared CI and release policy.",
+			"Encode one product's copy workflow as hidden library behavior."
+		]
+	},
+	"boundaries": {
+		"owns": [
+			{
+				"name": "rosetta-core-package",
+				"description": "Core @sylphx/rosetta package exports, string collection behavior, type contracts, and test coverage."
+			},
+			{
+				"name": "rosetta-adapters",
+				"description": "Next.js, admin, Drizzle, and translator provider adapter packages with documented integration contracts."
+			},
+			{
+				"name": "rosetta-docs-and-release",
+				"description": "Docs site, CI workflow, package build, and central release workflow wiring for the Rosetta package family."
+			}
+		],
+		"doesNotOwn": [
+			"Consumer application copy, translation policy, localization operations, provider availability, or product-specific workflow decisions.",
+			"Third-party LLM provider semantics beyond documented translator adapter behavior.",
+			"Enterprise doctrine, project manifest schema, rollout issue reconciliation, org rulesets, or shared workflow implementation."
+		],
+		"publicSurfaces": [
+			{
+				"type": "documentation",
+				"name": "Library README",
+				"location": "README.md"
+			},
+			{
+				"type": "package-export",
+				"name": "@sylphx/rosetta package",
+				"location": "packages/rosetta/package.json"
+			},
+			{
+				"type": "package-export",
+				"name": "@sylphx/rosetta-next package",
+				"location": "packages/rosetta-next/package.json"
+			},
+			{
+				"type": "package-export",
+				"name": "@sylphx/rosetta-admin package",
+				"location": "packages/rosetta-admin/package.json"
+			},
+			{
+				"type": "package-export",
+				"name": "@sylphx/rosetta-drizzle package",
+				"location": "packages/rosetta-drizzle/package.json"
+			},
+			{
+				"type": "package-export",
+				"name": "Translator adapter packages",
+				"location": "packages/translator-*/package.json"
+			},
+			{
+				"type": "documentation",
+				"name": "Docs site",
+				"location": "docs/"
+			},
+			{
+				"type": "workflow",
+				"name": "CI workflow",
+				"location": ".github/workflows/ci.yml"
+			},
+			{
+				"type": "workflow",
+				"name": "Central release workflow call",
+				"location": ".github/workflows/release.yml"
+			},
+			{
+				"type": "manifest",
+				"name": "Project control-plane manifest",
+				"location": ".doctrine/project.json"
+			}
+		],
+		"allowedDependencies": [
+			{
+				"repo": "SylphxAI/doctrine",
+				"surface": "project manifest schema, standards, and rollout audit",
+				"direction": "downward"
+			},
+			{
+				"repo": "SylphxAI/.github",
+				"surface": "central reusable release workflow",
+				"direction": "downward"
+			}
+		],
+		"forbiddenCouplings": [
+			"Do not require consumers to import internal package paths instead of documented package exports.",
+			"Do not encode one consumer product's copy workflow or tenant policy as hidden Rosetta core behavior.",
+			"Do not bypass adapter boundaries for provider-specific translation behavior.",
+			"Do not publish enterprise process policy from this repository instead of SylphxAI/doctrine or SylphxAI/.github."
+		]
+	},
+	"documentation": {
+		"adr": {
+			"path": "docs/adr/",
+			"status": "planned"
+		},
+		"specs": {
+			"path": "README.md",
+			"status": "present"
+		},
+		"catalog": {
+			"path": ".doctrine/project.json",
+			"status": "present"
+		},
+		"runbooks": {
+			"path": "docs/",
+			"status": "present"
+		},
+		"generatedReferences": {
+			"path": "docs/",
+			"status": "present"
+		}
+	},
+	"delivery": {
+		"ciModel": "legacy-ci",
+		"requiredContexts": ["ci"],
+		"deployPath": "Pull requests and merge groups run .github/workflows/ci.yml; main pushes call .github/workflows/release.yml to delegate release handling to the central reusable workflow.",
+		"productionProof": "Published package changes require CI evidence plus package/readback or consumer smoke proof for affected exports and adapters; this proof is not yet formalized as one release gate.",
+		"recoveryClass": "forward-fix-only"
+	},
+	"adoption": {
+		"status": "baseline",
+		"gaps": [
+			{
+				"id": "adr29-not-adopted",
+				"description": "Upgrade from legacy CI to ADR-29 admission contexts when the package family is ready for full central policy enforcement.",
+				"owner": "SylphxAI/rosetta",
+				"target": "Before full adoption"
+			},
+			{
+				"id": "release-proof-missing",
+				"description": "Document package readback, docs readback, and consumer smoke evidence required after package releases.",
+				"owner": "SylphxAI/rosetta",
+				"target": "Before commercial-grade library operation"
+			},
+			{
+				"id": "provider-contracts-missing",
+				"description": "Document supported translator provider contracts, failure modes, and adapter compatibility expectations.",
+				"owner": "SylphxAI/rosetta",
+				"target": "Before full adapter adoption"
+			}
+		]
+	}
+}
